@@ -1,0 +1,32 @@
+<!-- templates/about/tech.html -->
+{% extends "base.html" %}
+{% block title %}Технологии{% endblock %}
+{% block content %}
+{% comment %} Колонки с отступом сверху и снизу {% endcomment %}
+<div class="row">
+  <h1>Технологии, используемые в проекте</h1>
+  {% comment %}
+    Боковой блок со списком технологий
+    Займет всю ширину блока на мобильном
+    и 25% при размерах экрана ≥768px
+  {% endcomment %}
+  {% comment %} <aside class="col-12 col-md-3">
+    <ul class="list-group list-group-flush">
+      <li class="list-group-item">
+        Python, как основной язык программирования для разработки бэкенда и фронтенда, а именно фреймворк Django.
+      </li>
+    </ul>
+  </aside> {% endcomment %}
+  {% comment %}
+    Статья
+    Займет всю ширину блока на мобильном
+    и 75% при размерах экрана ≥768px
+  {% endcomment %}
+  <article class="col-12 col-md-9">
+    <p>Python, как основной язык программирования для разработки бэкенда и фронтенда, а именно фреймворк Django.</p>
+    <p>Фронтенд проекта был реализован на разметке встроенных шаблонов Django Template Language (DTL)</p>
+    <p>API для проекта создавалось на базе фреймворка Django REST framework.</p>
+    <p>Процесс распознования изображения был реализован на ...</p>
+  </article>
+</div>
+{% endblock %}

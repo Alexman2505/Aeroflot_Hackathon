@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load thumbnail %}
+{% load user_filters %}
+{% block title %}
+  Пост {{ instrument.text|truncatechars:30 }}{% endblock %}
+  {% block content %}
+    <main>
+      <div class="row">
+        <aside class="col-12 col-md-3">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item">Дата записи: {{ instrument.pub_date|date:"d E Y" }}</li>
+            <li class="list-group-item">
+              {% if instrument.group %}
+                Группа: {{ instrument.group.title|linebreaksbr }}
+                <br>
+                <a href="{% url 'instruments:group_instruments' instrument.group.slug %}">все записи группы инструментов</a>
+              {% endif %}
+            </li>
+            <li class="list-group-item">Автор: {{ instrument.employee.get_full_name }}</li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Всего записей сотрудника:<span>{{ instrument.employee.instruments.count }}</span>
+            </li>
+            <li class="list-group-item">
+              <a href="{% url 'instruments:profile' instrument.employee.username %}">Все записи сотрудника</a>
+            </li>
+          </ul>
+        </aside>
+        <article class="col-12 col-md-9" {
+          word-wrap: break-word;
+          }>
+          {% thumbnail instrument.image "960x339" crop="center" upscale=True as im %}
+          <img class="card-img my-2" src="{{ im.url }}">
+        {% endthumbnail %}
+        {{ instrument.text|linebreaksbr }}
+        {% if user.id == instrument.employee.id %}
+          <br>
+          <br>
+          <a class="btn btn-primary" href="{% url 'instruments:instrument_edit' instrument.id %}">редактировать запись</a>
+        {% endif %}
+      </article>
+    </div>
+  </main>
+{% endblock %}

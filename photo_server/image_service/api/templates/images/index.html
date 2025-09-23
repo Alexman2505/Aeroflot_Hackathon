@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Encodings Service (вау!)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #e74c3c;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            margin: 0 3px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .submit-btn {
+            background: #3498db;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .submit-btn:hover {
+            background: #2980b9;
+        }
+
+        .workflow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .step {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .step-number {
+            background: #e74c3c;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px auto;
+            font-weight: bold;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .base64-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        @media (max-width: 768px) {
+            .workflow {
+                flex-direction: column;
+            }
+
+            .step {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Image Encodings Service</h1>
+            <p>Тестовый сервис загрузки и отправки изображений через API (вау!)</p>
+            <div style="margin-top: 15px;">
+                <span class="badge">Django</span>
+                <span class="badge">API</span>
+                <span class="badge">Base64</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>О сервисе</h2>
+                <p>Сервис для тестирования отправки изображений в формате base64 через API на основной сервер AeroToolKit.</p>
+                <p><a href="https://www.djangoproject.com/">Django</a></p>
+                <p><a href="https://datatracker.ietf.org/doc/html/rfc4648">Base64 Data Encodings</a></p>
+            </div>
+
+            <div class="section">
+                <h2>Как работает этот сервис</h2>
+                <div class="workflow">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <p>Введите токен для идентификации запроса на сервере AeroToolKit</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <p>Загрузите изображение (можно несколько сразу)</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <p>Система закодирует бинарный файл изображения в base64 строку</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <p>Отправит эту строку в json-объектом на сервер AeroToolKit</p>
+                    </div>
+                </div>
+            </div>
+
+            {% if not submitted %}
+            <div class="section">
+                <h2>Отправка изображения по API</h2>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="sender_name">Токен доступа</label>
+                        <input type="text" id="sender_name" name="sender_name" required placeholder="Введите ваш токен">
+                    </div>
+                    <div class="form-group">
+                        <label for="image">Выберите изображения (можно несколько сразу)</label>
+                        <input type="file" id="image" name="images" accept="image/*" multiple required>
+                    </div>
+                    <button type="submit" class="submit-btn">Отправить по API на AeroToolKit</button>
+                </form>
+            </div>
+            {% else %}
+            <div class="section">
+                <h2>Результаты обработки</h2>
+
+                <div class="workflow">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <p><strong>Статус:</strong><br>Успешно отправлено</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <p><strong>Отправитель:</strong><br>{{ sender_name }}</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <p><strong>Изображений:</strong><br>{{ images_count }} шт.</p>
+                    </div>
+                </div>
+
+                {% if last_image %}
+                <div style="margin-top: 20px;">
+                    <h3>Последнее изображение</h3>
+                    <img src="{{ last_image.full_base64_string }}" alt="Preview" class="preview-image">
+                    <p><strong>Файл:</strong> {{ last_image.filename }}</p>
+                    <p><strong>Размер:</strong> {{ last_image.size }} байт</p>
+
+                    <div style="margin-top: 15px;">
+                        <label><strong>Строка изображения в кодировке Base64 (можно проверить на <a href="https://products.aspose.app/imaging/ru/conversion/base64-to-image">aspose</a>)</strong></label>
+                        <textarea class="base64-textarea" readonly>{{ last_image.full_base64_string }}</textarea>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="" class="submit-btn" style="display: inline-block; width: auto; padding: 10px 20px;">Отправить по API на AeroToolKit ЕЩЕ РАЗ!</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

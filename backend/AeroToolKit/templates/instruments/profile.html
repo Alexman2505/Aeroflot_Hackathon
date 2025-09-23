@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}{{ employee.get_full_name }} профайл сотрудника{% endblock %}
+{% block content %}
+  <div class="mb-5">
+    <h3>Всего записей: {{ employee.instruments.count }}</h3>
+    <h3>Все записи сотрудника {{ employee.get_full_name }}</h3>
+  </div>
+  {% for instrument in page_obj %}
+    {% include 'includes/general.html' with hide_author_links=True %}
+  {% endfor %}
+  {% include 'includes/paginator.html' %}
+{% endblock %}

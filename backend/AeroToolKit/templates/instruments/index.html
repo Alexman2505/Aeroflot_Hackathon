@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Последние обновления на сервере{% endblock %}
+{% block content %}
+  {% load cache %}
+  {% cache 20 index_page page_obj.number %}
+  <h1>Последние обновления на сервере</h1>
+  {% comment %} {% include 'includes/switcher.html' %} {% endcomment %}
+  {% for instrument in page_obj %}
+    {% include 'includes/general.html' %}
+  {% endfor %}
+{% endcache %}
+{% include 'includes/paginator.html' %}
+{% comment %} {% endcache %} {% endcomment %}
+{% endblock %}
