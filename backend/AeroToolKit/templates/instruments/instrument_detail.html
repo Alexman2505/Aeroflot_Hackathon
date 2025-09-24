@@ -8,19 +8,17 @@
       <div class="row">
         <aside class="col-12 col-md-3">
           <ul class="list-group list-group-flush">
-            <li class="list-group-item">Дата записи: {{ instrument.pub_date|date:"d E Y" }}</li>
-            <li class="list-group-item">
+            <li class="list-group-item d-flex justify-content-between align-items-center">Дата и время обработки изображения: <span>{{ instrument.pub_date|date:"d.m.Y в H:i:s" }}</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
               {% if instrument.group %}
                 Группа: {{ instrument.group.title|linebreaksbr }}
                 <br>
                 <a href="{% url 'instruments:group_instruments' instrument.group.slug %}">все записи группы инструментов</a>
               {% endif %}
             </li>
-            <li class="list-group-item">Автор: {{ instrument.employee.get_full_name }}</li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Сотрудник: <span>{{ instrument.employee.get_full_name }}</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Количество записей:<span>{{ instrument.employee.instruments.count }}</span></li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
-              Всего записей сотрудника:<span>{{ instrument.employee.instruments.count }}</span>
-            </li>
-            <li class="list-group-item">
               <a href="{% url 'instruments:profile' instrument.employee.username %}">Все записи сотрудника</a>
             </li>
           </ul>

@@ -32,12 +32,6 @@ DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
-# API URL для AeroToolKit
-AEROTOOLKIT_API_URL = os.getenv(
-    'AEROTOOLKIT_API_URL', 'https://httpbin.org/post'
-)
-
-# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -141,3 +135,12 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ]
 }
+
+# переменные в коде
+# API URL для AeroToolKit
+AEROTOOLKIT_API_URL = os.getenv(
+    'AEROTOOLKIT_API_URL', 'https://httpbin.org/post'
+)
+# адрес api получения токена с AEROTOOLKIT
+AEROTOOLKIT_AUTH_URL = os.getenv('AEROTOOLKIT_AUTH_URL', '123invalid_token456')
+# Application definition

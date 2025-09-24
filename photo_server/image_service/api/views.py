@@ -27,9 +27,12 @@ def index(request):
     if request.method == 'POST':
         name = request.POST.get('sender_name', '').strip()
         image_files = request.FILES.getlist('images')
+        token = request.POST.get('api_token', '').strip()
 
-        if name and image_files:
+        if name and image_files and token:
             processed_images = []
+            success_count = 0
+            error_count = 0
 
             for image_file in image_files:
                 # Кодируем каждое изображение в base64
@@ -45,7 +48,13 @@ def index(request):
                 )
 
                 # Отправляем на внешний API (без проверки результата)
-                send_to_external_api(name, full_base64_string)
+                success = send_to_aerotoolkit_api(
+                    name, full_base64_string, token
+                )
+                if success:
+                    success_count += 1
+                else:
+                    error_count += 1
 
                 processed_images.append(
                     {
@@ -75,13 +84,41 @@ def index(request):
     return render(request, 'images/index.html', context)
 
 
-##для отправки уже на наше апи на сервисе 'AeroToolKit/api'
-def send_to_external_api(name, full_base64_string):
+def get_auth_token(username, password, auth_url=None):
     """
-    Функция выполняет HTTP POST запрос к внешнему API endpoint AeroToolKit,
-    Основная цель - передача данных изображения в формате
-    base64 для последующей обработки ML-моделью целевого сервиса.
+    Получает токен аутентификации с основного сервера AeroToolKit
+    Args:
+        username (str): имя пользователя заранее зарегистрированного на сервисе AeroToolKit.
+        password (str): Пароль этого пользователя с сервиса AeroToolKit
+        auth_url (str): Адрес API AeroToolKit, который выдает токены
 
+    Returns:
+        token (str): возвращает токен, полученный от AeroToolKit для последующей аутентификации
+
+    """
+    if auth_url is None:
+        auth_url = settings.AEROTOOLKIT_AUTH_URL
+    payload = {'username': username, 'password': password}
+
+    try:
+        response = requests.post(auth_url, json=payload, timeout=10)
+
+        if response.status_code == 200:
+            return response.json().get('token')
+        else:
+            print(
+                f"Ошибка аутентификации: {response.status_code} - {response.text}"
+            )
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f"Ошибка подключения к серверу аутентификации: {e}")
+        return None
+
+
+def send_to_aerotoolkit_api(name, full_base64_string):
+    """
+    Отправляет изображение на API AeroToolKit с аутентификацией по токену
     Args:
         name (str): Идентификатор отправителя. Используется для аутентификации
                    на стороне принимающего сервиса. Содержит уникальный токен.
@@ -92,6 +129,8 @@ def send_to_external_api(name, full_base64_string):
                                 - <format>: jpeg, png, gif, etc.
                                 - <encoded_data>: бинарные данные изображения,
                                   закодированные в base64
+
+        token (str): токен, полученный от
     """
     payload = {
         "sender": name,

@@ -147,6 +147,19 @@
             min-height: 100px;
         }
 
+        .token-help {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .results-info {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
         @media (max-width: 768px) {
             .workflow {
                 flex-direction: column;
@@ -205,14 +218,27 @@
                 <h2>Отправка изображения по API</h2>
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
+
                     <div class="form-group">
-                        <label for="sender_name">Токен доступа</label>
-                        <input type="text" id="sender_name" name="sender_name" required placeholder="Введите ваш токен">
+                        <label for="api_token">Токен доступа AeroToolKit *</label>
+                        <input type="text" id="api_token" name="api_token" required
+                               placeholder="Введите ваш токен авторизации">
+                        <div class="token-help">
+                            Получите токен по адресу: http://aerotoolkit:8000/api/v1/api-token-auth/
+                        </div>
                     </div>
+
                     <div class="form-group">
-                        <label for="image">Выберите изображения (можно несколько сразу)</label>
-                        <input type="file" id="image" name="images" accept="image/*" multiple required>
+                        <label for="sender_name">Имя отправителя *</label>
+                        <input type="text" id="sender_name" name="sender_name" required
+                               placeholder="Введите ваше имя">
                     </div>
+
+                    <div class="form-group">
+                        <label for="images">Выберите изображения (можно несколько сразу) *</label>
+                        <input type="file" id="images" name="images" accept="image/*" multiple required>
+                    </div>
+
                     <button type="submit" class="submit-btn">Отправить по API на AeroToolKit</button>
                 </form>
             </div>
@@ -220,37 +246,45 @@
             <div class="section">
                 <h2>Результаты обработки</h2>
 
+                <div class="results-info">
+                    <p><strong>Статус отправки:</strong></p>
+                    <p>Успешно отправлено: {{ success_count }} из {{ images_count }} изображений</p>
+                    {% if error_count > 0 %}
+                    <p style="color: #e74c3c;">Ошибок: {{ error_count }}</p>
+                    {% endif %}
+                </div>
+
                 <div class="workflow">
                     <div class="step">
                         <div class="step-number">1</div>
-                        <p><strong>Статус:</strong><br>Успешно отправлено</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">2</div>
                         <p><strong>Отправитель:</strong><br>{{ sender_name }}</p>
                     </div>
                     <div class="step">
-                        <div class="step-number">3</div>
+                        <div class="step-number">2</div>
                         <p><strong>Изображений:</strong><br>{{ images_count }} шт.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <p><strong>Успешно:</strong><br>{{ success_count }} шт.</p>
                     </div>
                 </div>
 
                 {% if last_image %}
                 <div style="margin-top: 20px;">
-                    <h3>Последнее изображение</h3>
+                    <h3>Последнее отправленное изображение</h3>
                     <img src="{{ last_image.full_base64_string }}" alt="Preview" class="preview-image">
                     <p><strong>Файл:</strong> {{ last_image.filename }}</p>
                     <p><strong>Размер:</strong> {{ last_image.size }} байт</p>
 
                     <div style="margin-top: 15px;">
-                        <label><strong>Строка изображения в кодировке Base64 (можно проверить на <a href="https://products.aspose.app/imaging/ru/conversion/base64-to-image">aspose</a>)</strong></label>
+                        <label><strong>Строка изображения в кодировке Base64</strong></label>
                         <textarea class="base64-textarea" readonly>{{ last_image.full_base64_string }}</textarea>
                     </div>
                 </div>
                 {% endif %}
 
                 <div style="text-align: center; margin-top: 20px;">
-                    <a href="" class="submit-btn" style="display: inline-block; width: auto; padding: 10px 20px;">Отправить по API на AeroToolKit ЕЩЕ РАЗ!</a>
+                    <a href="" class="submit-btn" style="display: inline-block; width: auto; padding: 10px 20px;">Отправить еще изображения</a>
                 </div>
             </div>
             {% endif %}

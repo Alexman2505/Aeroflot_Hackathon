@@ -1,11 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ToolViewSet
+from .views import ToolViewSet, upload_image_api
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from django.urls import path, re_path
-from . import views
+from django.urls import path
 from rest_framework.authtoken import views
 
 router = DefaultRouter()
@@ -27,9 +26,10 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('', include(router.urls)),
     path('api-token-auth/', views.obtain_auth_token),
+    path('upload/', upload_image_api, name='upload-image'),
 ]
 
-# для документации
+# для документации свагера
 urlpatterns += [
     path(
         'swagger<format>/',
