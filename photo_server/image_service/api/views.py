@@ -2,6 +2,7 @@ import base64
 import requests
 from django.shortcuts import render
 from django.utils import timezone
+from django.conf import settings
 
 
 def index(request):
@@ -75,7 +76,6 @@ def index(request):
 
 
 ##для отправки уже на наше апи на сервисе 'AeroToolKit/api'
-##не забудь поменять строку на PythonAnywhere
 def send_to_external_api(name, full_base64_string):
     """
     Функция выполняет HTTP POST запрос к внешнему API endpoint AeroToolKit,
@@ -101,9 +101,7 @@ def send_to_external_api(name, full_base64_string):
 
     try:
         requests.post(
-            # не забудь поменять строку на PythonAnywhere
-            # на адрес api AeroToolKit куда json отправляем
-            'https://AeroToolKit.org/api/post',
+            settings.AEROTOOLKIT_API_URL,
             json=payload,
             headers={'Content-Type': 'application/json'},
             timeout=30,  # Можно увеличить для больших файлов
@@ -112,7 +110,15 @@ def send_to_external_api(name, full_base64_string):
         pass  # Бесшумная обработка ошибок
 
 
-## для тестирования апи на сервисе 'https://httpbin.org/post'
+'''
+для тестирования нашего апи на сервисе 'https://httpbin.org/post'
+но сейчас эта функция отключена, т.к. сайт для тестирования подхватывается
+автоматически из виртуального окружения env
+кто хочет - разкомментируйте, чтобы в консоли видеть полученный ответ от
+бесплатного апи httpbin. Он присылает обратно то, что ему отправили.
+Так и проверяется работоспособность нашего сервиса
+'''
+
 # def send_to_external_api(name, full_base64_string):
 #     """
 #     Функция выполняет HTTP POST запрос к внешнему API https://httpbin.org/post,
