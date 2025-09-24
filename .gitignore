@@ -216,10 +216,15 @@ __pycache__/
 venv/
 *.egg-info/
 
-# Данные
+# Мои кастомные настройки гита.
 *.csv
 *.xlsx
 *.db
 photo-server.tar
 *photo-server.*.tar
 *.tar
+# Media files
+*/media/
+/media/*
+!/media/.gitkeep
+media/
