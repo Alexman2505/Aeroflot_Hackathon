@@ -104,7 +104,7 @@ docker build -t photo-server .
 docker run --rm -p 8000:8000 --name photo-server-container photo-server
 ```
 
-- Откройте в браузере
+- Откройте в браузере.
 
 ```
 http://127.0.0.1:8000
