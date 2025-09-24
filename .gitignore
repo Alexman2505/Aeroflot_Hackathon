@@ -220,3 +220,4 @@ venv/
 *.csv
 *.xlsx
 *.db
+photo-server.tar
