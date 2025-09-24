@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'team.apps.TeamConfig',
     'rest_framework',
+    'rest_framework.authtoken',
     'sorl.thumbnail',
     'debug_toolbar',
     'drf_yasg',
@@ -143,8 +144,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # my_settings
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
-    ]
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
 }
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
@@ -161,7 +165,7 @@ NUMBER_OF_INSTRUMENTS: int = 10
 NUMBER_OF_POSTS_PAGE_TWO: int = 3
 POST_URL: int = 0
 SLICE_LETTERS: int = 15
-
+AUTH_USER_MODEL = 'users.CustomUser'
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',

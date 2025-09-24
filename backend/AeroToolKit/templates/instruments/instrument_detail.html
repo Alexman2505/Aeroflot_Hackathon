@@ -28,9 +28,12 @@
         <article class="col-12 col-md-9" {
           word-wrap: break-word;
           }>
-          {% thumbnail instrument.image "960x339" crop="center" upscale=True as im %}
-          <img class="card-img my-2" src="{{ im.url }}">
+          {% thumbnail instrument.image "960x339" upscale=False as im %}
+          <a href="{{ instrument.image.url }}" target="blank">
+            <img class="card-img my-2" src="{{ im.url }}" style="max-width: 66%; height: auto;">
+          </a>
         {% endthumbnail %}
+        <br>
         {{ instrument.text|linebreaksbr }}
         {% if user.id == instrument.employee.id %}
           <br>

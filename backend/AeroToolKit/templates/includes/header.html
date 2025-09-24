@@ -16,7 +16,7 @@
          <li class="nav-item">
           <a class="nav-link {% if view_name == 'instruments:profile' %} active {% endif %}"
              href="{% url 'instruments:profile' request.user.username  %}">
-             Пользователь </a>
+             Пользователь {{ request.user }}</a>
          </li>
         {% endif %}
 

@@ -6,6 +6,7 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from django.urls import path, re_path
 from . import views
+from rest_framework.authtoken import views
 
 router = DefaultRouter()
 router.register(r'tools', ToolViewSet, basename='tool')
@@ -25,6 +26,7 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('api-token-auth/', views.obtain_auth_token),
 ]
 
 # для документации
