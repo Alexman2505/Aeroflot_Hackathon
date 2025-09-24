@@ -221,3 +221,5 @@ venv/
 *.xlsx
 *.db
 photo-server.tar
+*photo-server.*.tar
+*.tar
