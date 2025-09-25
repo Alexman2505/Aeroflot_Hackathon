@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% comment %} {% extends 'base.html' %}
 {% block title %}Записи о группах инструментов {{ group.title }}{% endblock %}
 {% block content %}
   <h1>{{ group.title|linebreaksbr }}</h1>
@@ -7,4 +7,4 @@
     {% include 'includes/general.html' with hide_group_link=True %}
   {% endfor %}
   {% include 'includes/paginator.html' %}
-{% endblock %}
+{% endblock %} {% endcomment %}

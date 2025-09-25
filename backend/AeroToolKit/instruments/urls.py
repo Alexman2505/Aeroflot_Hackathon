@@ -8,9 +8,6 @@ app_name = 'instruments'
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path(
-        'group/<slug:slug>/', views.group_instruments, name='group_instruments'
-    ),
     path('profile/<str:username>/', views.profile, name='profile'),
     path(
         'instrument/<int:instrument_id>/',

@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
 
-from .models import Group, Instrument, User
+from .models import Instrument, User
 from .forms import InstrumentForm
 from .utils import make_page
 
@@ -15,7 +15,7 @@ def instrument_create(request):
             instrument = form.save(commit=False)
             instrument.employee = request.user
             instrument.save()
-            return redirect('instruments:profile', request.user)
+            return redirect('instruments:index')
     form = InstrumentForm()
     return render(
         request,
@@ -48,7 +48,7 @@ def instrument_edit(request, instrument_id):
 
 def index(request):
     '''Главная страница c кешем 20 секунд.'''
-    instruments = Instrument.objects.select_related('group', 'employee')
+    instruments = Instrument.objects.select_related('employee')
     return render(
         request,
         'instruments/index.html',
@@ -59,23 +59,12 @@ def index(request):
     )
 
 
-def group_instruments(request, slug):
-    '''Страница групп.'''
-    group = get_object_or_404(Group, slug=slug)
-    instruments = group.instruments.select_related('employee')
-    return render(
-        request,
-        'instruments/group_instruments.html',
-        {'group': group, 'page_obj': make_page(request, instruments)},
-    )
-
-
 def profile(request, username):
     '''Страница профиля пользователя.'''
     employee = get_object_or_404(User, username=username)
-    instruments = Instrument.objects.select_related(
-        'group', 'employee'
-    ).filter(employee__username=username)
+    instruments = Instrument.objects.select_related('employee').filter(
+        employee__username=username
+    )
     return render(
         request,
         'instruments/profile.html',
@@ -89,7 +78,7 @@ def profile(request, username):
 def instrument_detail(request, instrument_id):
     '''Отдельная запись.'''
     instrument = get_object_or_404(
-        Instrument.objects.select_related('employee', 'group'),
+        Instrument.objects.select_related('employee'),
         id=instrument_id,
     )
     employee = request.user.id

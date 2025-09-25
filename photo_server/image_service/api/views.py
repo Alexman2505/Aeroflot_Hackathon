@@ -13,9 +13,9 @@ def index(request):
     context = {
         'current_timestamp': timezone.now().isoformat(),
         'step': 'auth',  # По умолчанию показываем форму авторизации
-        'success_count': 0,  # ← Инициализируем по умолчанию
-        'error_count': 0,  # ← Инициализируем по умолчанию
-        'images_count': 0,  # ← Инициализируем по умолчанию
+        'success_count': 0,  #  Инициализируем по умолчанию
+        'error_count': 0,  #  Инициализируем по умолчанию
+        'images_count': 0,  #  Инициализируем по умолчанию
     }
     if request.method == 'POST':
         # Шаг 1: Получение токена
@@ -160,11 +160,15 @@ def get_auth_token(username, password, auth_url=None):
 def send_to_aerotoolkit_api(name, full_base64_string, token):
     """
     Отправляет изображение на API AeroToolKit с аутентификацией по токену.
-    Используем существующий endpoint /api/v1/upload/
     """
+    text = (
+        f"Фотография автоматически загружена через систему фотофиксации.\n"
+        f"Сотрудник, отправивший фотографию: {name}\n"
+        f"Локальное время отправки с сервера фотофиксации PhotoService: {timezone.now().strftime('%d.%m.%Y %H:%M:%S')}"
+    )
+
     payload = {
-        "sender": name,
-        "timestamp": timezone.now().isoformat(),
+        "text": text,
         "full_base64_string": full_base64_string,
     }
 
@@ -189,12 +193,12 @@ def send_to_aerotoolkit_api(name, full_base64_string, token):
         success_statuses = [200, 201]
 
         if response.status_code in success_statuses:
-            print("✓ Изображение успешно отправлено")
+            print("Изображение успешно отправлено")
             return True
         else:
-            print(f"✗ Ошибка отправки: {response.status_code}")
+            print(f"Ошибка отправки: {response.status_code}")
             return False
 
     except requests.exceptions.RequestException as e:
-        print(f"✗ Ошибка подключения: {e}")
+        print(f"Ошибка подключения: {e}")
         return False

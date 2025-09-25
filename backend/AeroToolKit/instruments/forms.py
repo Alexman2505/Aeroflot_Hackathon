@@ -6,4 +6,4 @@ from .models import Instrument
 class InstrumentForm(forms.ModelForm):
     class Meta:
         model = Instrument
-        fields = ('text', 'group', 'image')
+        fields = ('text', 'image')

@@ -3,14 +3,18 @@ from rest_framework.routers import DefaultRouter
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from rest_framework.authtoken import views
 
-from .views import obtain_auth_token_csrf_exempt
-from .views import ToolViewSet, UploadViewSet
+
+from .views import (
+    obtain_auth_token_csrf_exempt,
+    ToolViewSet,
+    InstrumentViewSet,
+)
 
 router = DefaultRouter()
 router.register(r'tools', ToolViewSet, basename='tool')
-router.register(r'upload', UploadViewSet, basename='upload')
+router.register(r'instruments', InstrumentViewSet, basename='instrument')
+
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -27,7 +31,6 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('', include(router.urls)),
-    # path('api-token-auth/', views.obtain_auth_token),
     path('api-token-auth/', obtain_auth_token_csrf_exempt),  # Без CSRF
 ]
 
@@ -44,14 +47,3 @@ urlpatterns += [
         name='schema-redoc',
     ),
 ]
-SWAGGER_SETTINGS = {
-    'SECURITY_DEFINITIONS': {
-        'Token': {
-            'type': 'apiKey',
-            'name': 'Authorization',
-            'in': 'header',
-            'description': 'Token-based authentication. Example: "Token xxxxyyyyzzzz"',
-        }
-    },
-    'USE_SESSION_AUTH': False,
-}
