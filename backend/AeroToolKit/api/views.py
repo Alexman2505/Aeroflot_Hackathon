@@ -4,9 +4,13 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from instruments.models import Instrument
+from rest_framework.authtoken.views import ObtainAuthToken
 
 
 class ToolViewSet(viewsets.ViewSet):
@@ -14,6 +18,45 @@ class ToolViewSet(viewsets.ViewSet):
 
     def list(self, request):
         return Response({"message": "API работает!"})
+
+
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate
+from rest_framework import status
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def obtain_auth_token_csrf_exempt(request):
+    """
+    Упрощенная CSRF-экземпempt версия получения токена.
+    """
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    if not username or not password:
+        return Response(
+            {'error': 'Username and password are required'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Аутентифицируем пользователя
+    user = authenticate(username=username, password=password)
+
+    if user:
+        # Получаем или создаем токен
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key})
+    else:
+        return Response(
+            {'error': 'Invalid credentials'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 # Основная логика получения и загрузки изображения по API

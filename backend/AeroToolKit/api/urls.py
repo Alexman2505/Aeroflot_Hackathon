@@ -1,11 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ToolViewSet, UploadViewSet
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from django.urls import path
 from rest_framework.authtoken import views
+
+from .views import obtain_auth_token_csrf_exempt
+from .views import ToolViewSet, UploadViewSet
 
 router = DefaultRouter()
 router.register(r'tools', ToolViewSet, basename='tool')
@@ -26,7 +27,8 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('api-token-auth/', views.obtain_auth_token),
+    # path('api-token-auth/', views.obtain_auth_token),
+    path('api-token-auth/', obtain_auth_token_csrf_exempt),  # Без CSRF
 ]
 
 # для документации свагера

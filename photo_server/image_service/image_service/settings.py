@@ -144,3 +144,12 @@ AEROTOOLKIT_API_URL = os.getenv(
 # адрес api получения токена с AEROTOOLKIT
 AEROTOOLKIT_AUTH_URL = os.getenv('AEROTOOLKIT_AUTH_URL', '123invalid_token456')
 # Application definition
+
+# Уникальные имена cookies для Photo Service
+SESSION_COOKIE_NAME = 'photo_service_sessionid'
+CSRF_COOKIE_NAME = 'photo_service_csrf'
+LANGUAGE_COOKIE_NAME = 'photo_service_language'
+
+# Убедитесь что сессии изолированы
+SESSION_COOKIE_PATH = '/'
+SESSION_COOKIE_DOMAIN = None  # Не делить cookies с AeroToolKit
