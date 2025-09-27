@@ -150,7 +150,8 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
                 )
 
             yolo_section = (
-                f"YOLO анализ: обнаружено {len(detections)} объектов\n"
+                "Это имитация работы YOLO модели для сайта pythonanywhere, потому что реальный прототип модели запускается в контейнерах Docker\n"
+                + f"YOLO анализ: обнаружено {len(detections)} объектов\n"
                 + "\n".join(detected_items)
             )
 

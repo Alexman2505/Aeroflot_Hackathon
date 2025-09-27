@@ -225,6 +225,15 @@ photo-server.tar
 *.tar
 # Media files
 */media/
+/media/
 /media/*
 !/media/.gitkeep
 media/
+*.bak
+*/static/
+/static/*
+static/
+*/staticfiles/
+/staticfiles/*
+staticfiles/
+/staticfiles/

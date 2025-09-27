@@ -215,7 +215,7 @@ def get_auth_token(username, password, auth_url=None):
     """
     Выполняет аутентификацию пользователя через API AeroToolKit.
 
-    Отправляет запрос к endpoint /api/api-token-auth/ для получения
+    Отправляет запрос к endpoint /api/v1/api-token-auth/ для получения
     токена аутентификации по логину и паролю.
 
     Args:

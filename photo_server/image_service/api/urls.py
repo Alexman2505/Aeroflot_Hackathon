@@ -1,8 +1,16 @@
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 from . import views
 
-# наш основной url приложения
 urlpatterns = [
     path('', views.index, name='index'),
     path('clear-session/', views.clear_session, name='clear_session'),
 ]
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.STATIC_URL, document_root=settings.STATIC_ROOT
+    )
+    urlpatterns += static(
+        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
+    )

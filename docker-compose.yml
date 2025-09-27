@@ -1,0 +1,113 @@
+# http://localhost:8000 - основной бэкенд (Gunicorn + Celery)
+# http://localhost:8000/admin - админка Django
+# http://localhost:8000/api/ - API основного бэкенда
+# http://localhost:8001 - photo server (runserver)
+# http://localhost:8001/api/ - API photo server
+
+
+
+version: '3.8'
+
+volumes:
+  pg_data:
+
+
+networks:
+  app-network:
+    driver: bridge
+
+
+services:
+
+
+  # База данных postgres
+  db:
+    image: postgres:13.10
+    env_file: ./backend/.env
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_USER=django_user_postgres
+      - POSTGRES_PASSWORD=mypasswordissecret
+      - POSTGRES_DB=django_db_postgres_aerotoolkit
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U django_user_postgres -d django_db_postgres_aerotoolkit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  # База данных Redis для Celery
+  redis:
+    image: redis:7-alpine
+    networks:
+      - app-network
+
+
+  # Backend/AeroToolKit (запускаем на Gunicorn, а не стандартный manage.py)
+  backend:
+    build: ./backend/
+    env_file: ./backend/.env
+    ports:
+      - "8000:8000"  # Основной бэкенд
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --workers 4 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
+
+  # Celery Worker
+  celery_worker:
+    build: ./backend/
+    env_file: ./backend/.env
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: celery -A AeroToolKit worker --loglevel=info --concurrency=4
+
+
+
+  # # Celery Beat (периодические задачи)
+  # celery_beat:
+  #   build: ./backend/
+  #   env_file: ./backend/.env
+  #   volumes:
+  #     - ./backend:/app
+  #   networks:
+  #     - app-network
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_started
+  #   command: celery -A AeroToolKit beat --loglevel=info
+
+  photo_server:
+    build: ./photo_server/
+    env_file: ./photo_server/.env
+    ports:
+      - "8001:8000"  # Photo server
+    volumes:
+      - ./photo_server:/app
+    networks:
+      - app-network
+    depends_on:
+      - backend
+    command: python manage.py runserver 0.0.0.0:8000

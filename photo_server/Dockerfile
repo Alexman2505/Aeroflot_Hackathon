@@ -13,9 +13,6 @@ RUN pip install -r requirements.txt --no-cache-dir
 # Копируем проект
 COPY . .
 
-# Создаем папку для .env файлов
-RUN mkdir -p /app/config
-
 # Переходим в папку с Django проектом
 WORKDIR /app/image_service
 

@@ -1,5 +1,11 @@
 # Aeroflot_Hackathon
 
+http://localhost:8000 - основной бэкенд (Gunicorn + Celery)
+http://localhost:8000/admin - админка Django
+http://localhost:8000/api/ - API основного бэкенда
+http://localhost:8001 - photo server (runserver)
+http://localhost:8001/api/ - API photo server
+
 ### Хакатон с решением задачи идентификации ручных инструментов при ремонте оборудования (например самолета).
 
 ### В проекте 3 папки:
