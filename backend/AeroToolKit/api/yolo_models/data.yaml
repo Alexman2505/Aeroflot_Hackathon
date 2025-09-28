@@ -1,0 +1,21 @@
+# data.yaml
+
+# Paths
+train: ./train
+val: ./test
+
+# Classes
+nc: 11
+names: [
+    '1_screwdriver_minus',  # Отвертка «-»
+    '2_screwdriver_plus',   # Отвертка «+»  
+    '3_screwdriver_torq',   # Отвертка на смещенный крест
+    '4_brace',              # Коловорот
+    '5_locking_pliers',     # Пассатижи контровочные
+    '6_pliers',             # Пассатижи
+    '7_adjustable_pliers',  # Шэрница
+    '8_adjustable_wrench',  # Разводной ключ
+    '9_can_opener',         # Открывашка для банок с маслом
+    '10_open_end_wrench',   # Ключ рожковый накидной ¾
+    '11_sidecutter',        # Бокорезы
+]
