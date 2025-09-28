@@ -1,13 +1,15 @@
 import base64
 import uuid
+import os
 from rest_framework import serializers
 from django.core.files.base import ContentFile
 from instruments.models import Instrument
 
+# Импортируем YOLO процессор
+from .yolo_processor import init_yolo, get_yolo
+
 
 class InstrumentSerializer(serializers.ModelSerializer):
-    '''Сериализатор для чтения, обновления, удаления'''
-
     employee_username = serializers.CharField(
         source='employee.username', read_only=True
     )
@@ -36,13 +38,7 @@ class InstrumentSerializer(serializers.ModelSerializer):
 
 
 class InstrumentCreateSerializer(serializers.ModelSerializer):
-    '''Сериализатор ТОЛЬКО для создания с обязательным base64 и YOLO'''
-
-    full_base64_string = serializers.CharField(
-        write_only=True,
-        required=True,
-        help_text="Обязательное поле: изображение в формате base64 (data:image/...)",
-    )
+    full_base64_string = serializers.CharField(write_only=True, required=True)
     image = serializers.ImageField(read_only=True)
 
     class Meta:
@@ -57,8 +53,18 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['employee', 'pub_date', 'image']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Инициализируем YOLO один раз
+        try:
+            model_path = os.path.join(
+                os.path.dirname(__file__), 'yolo_models', 'yolo_model.onnx'
+            )
+            init_yolo(model_path)
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize YOLO model: {e}")
+
     def validate(self, attrs):
-        """Валидация обязательных полей"""
         errors = {}
 
         if not attrs.get('text', '').strip():
@@ -70,9 +76,7 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
                 'Изображение в формате base64 обязательно'
             )
         elif not full_base64_string.startswith('data:image/'):
-            errors['full_base64_string'] = (
-                'Неверный формат. Ожидается: data:image/<format>;base64,<data>'
-            )
+            errors['full_base64_string'] = 'Неверный формат base64'
 
         if errors:
             raise serializers.ValidationError(errors)
@@ -80,22 +84,12 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        """ВСЯ логика создания: base64 - YOLO - сохранение"""
-        # 1. Извлекаем base64
+        # Извлекаем и декодируем base64
         full_base64_string = validated_data.pop('full_base64_string')
         base64_data = full_base64_string.split(',', 1)[1]
+        image_data = base64.b64decode(base64_data)
 
-        # 2. Декодируем base64
-        try:
-            image_data = base64.b64decode(base64_data)
-        except Exception as e:
-            raise serializers.ValidationError(
-                {
-                    'full_base64_string': f'Ошибка декодирования base64: {str(e)}'
-                }
-            )
-
-        # 3. Получаем пользователя из контекста
+        # Получаем пользователя
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             validated_data['employee'] = request.user
@@ -104,59 +98,43 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
                 {'employee': 'Пользователь не аутентифицирован'}
             )
 
-        # 4. Обрабатываем YOLO (заглушка)
-        yolo_results = self.yolo_processing_stub(image_data)
+        # Обрабатываем YOLO
+        yolo_processor = get_yolo()
+        yolo_results = yolo_processor.process(image_data)
 
-        # 5. Обновляем текст с результатами YOLO
+        # Используем аннотированное изображение
+        image_data = yolo_results['annotated_image']
+
+        # Обновляем текст с результатами
         original_text = validated_data.get('text', '')
-        validated_data['text'] = self.add_yolo_results_to_text(
+        validated_data['text'] = self._add_yolo_results(
             original_text, yolo_results
         )
 
-        # 6. Создаем имя файла
-        image_format = full_base64_string.split(';')[0].split('/')[1]
-        filename = f"instrument_{uuid.uuid4().hex[:8]}.{image_format}"
-
-        # 7. Создаем и сохраняем инструмент
+        # Сохраняем инструмент
+        filename = f"instrument_{uuid.uuid4().hex[:8]}.jpg"
         instrument = Instrument(**validated_data)
         instrument.image.save(filename, ContentFile(image_data))
 
         return instrument
 
-    def yolo_processing_stub(self, image_data):
-        """ЗАГЛУШКА для YOLO обработки"""
-        # Временная заглушка - возвращаем фиктивные результаты
-        return {
-            'detections': [
-                {'class': 'screwdriver', 'confidence': 0.85},
-                {'class': 'hammer', 'confidence': 0.92},
-                {'class': 'wrench', 'confidence': 0.78},
-            ],
-            'processing_time': 0.45,
-            'status': 'processed',
-        }
-
-    def add_yolo_results_to_text(self, original_text, yolo_results):
-        """Добавляем результаты YOLO к тексту"""
+    def _add_yolo_results(self, original_text, yolo_results):
         detections = yolo_results.get('detections', [])
 
         if not detections:
             yolo_section = "YOLO анализ: инструменты не обнаружены"
         else:
-            detected_items = []
-            for i, detection in enumerate(detections, 1):
-                detected_items.append(
-                    f"{i}. {detection['class']} (точность: {detection['confidence']:.2f})"
-                )
-
+            detected_items = [
+                f"{i}. {d['class']} (точность: {d['confidence']:.2f})"
+                for i, d in enumerate(detections, 1)
+            ]
             yolo_section = (
-                "Это имитация работы YOLO модели для сайта pythonanywhere, потому что реальный прототип модели запускается в контейнерах Docker\n"
-                + f"YOLO анализ: обнаружено {len(detections)} объектов\n"
+                f"Обнаружено {len(detections)} объектов:\n"
                 + "\n".join(detected_items)
             )
 
-        # Объединяем оригинальный текст с результатами YOLO
-        if original_text.strip():
-            return f"{original_text}\n\n{yolo_section}"
-        else:
-            return yolo_section
+        return (
+            f"{original_text}\n\n{yolo_section}"
+            if original_text.strip()
+            else yolo_section
+        )

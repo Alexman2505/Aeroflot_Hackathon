@@ -13,7 +13,12 @@ RUN pip install -r requirements.txt --no-cache-dir
 # Копируем проект
 COPY . .
 
+# Создаем папки для статики и медиа
+RUN mkdir -p staticfiles media
+
+EXPOSE 8000
+
 # Переходим в папку с Django проектом
 WORKDIR /app/image_service
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "image_service.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4"]
