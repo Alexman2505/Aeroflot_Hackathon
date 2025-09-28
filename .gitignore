@@ -237,3 +237,5 @@ static/
 /staticfiles/*
 staticfiles/
 /staticfiles/
+migrations/
+**/migrations/

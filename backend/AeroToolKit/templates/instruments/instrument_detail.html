@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
+{% load instruments_filters %}
 {% load thumbnail %}
-{% load user_filters %}
 {% block title %}
   Пост {{ instrument.text|truncatechars:30 }}{% endblock %}
   {% block content %}
@@ -26,6 +26,28 @@
             <img class="card-img my-2" src="{{ im.url }}" style="max-width: 66%; height: auto;">
           </a>
         {% endthumbnail %}
+
+        <!-- Блок информации о распознавании -->
+        <div class="recognition-info mb-4 p-3 border rounded">
+          {% with detected_count=instrument.text|extract_detected_count_filter %}
+            <p class="text-success mb-1">
+              <strong>Планируемое количество инструментов:</strong> {{ instrument.expected_objects|default:"11" }}
+            </p>
+            <p class="text-success mb-1">
+              <strong>Распознанное моделью количество инструментов:</strong> {{ detected_count }}
+            </p>
+            {% if detected_count == instrument.expected_objects %}
+              <p class="text-success mb-0">
+                <strong>Количество инструментов совпадает</strong>
+              </p>
+            {% else %}
+              <p class="text-danger mb-0">
+                <strong>Количество инструментов не совпадает</strong>
+              </p>
+            {% endif %}
+          {% endwith %}
+        </div>
+
         <br>
         {{ instrument.text|linebreaksbr }}
         {% if user.id == instrument.employee.id %}

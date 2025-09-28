@@ -8,7 +8,22 @@ from .utils import make_page
 
 @login_required
 def instrument_create(request):
-    '''Создание записи под авторизацией.'''
+    """
+    Создание новой записи об инструменте под авторизацией пользователя.
+
+    Обрабатывает GET и POST запросы для создания инструмента:
+    - GET: Отображает пустую форму для создания инструмента
+    - POST: Валидирует и сохраняет данные формы, назначает текущего пользователя как сотрудника
+
+    Args:
+        request: HTTP запрос от пользователя
+
+    Returns:
+        HttpResponse: Страница с формой создания или редирект на главную страницу при успехе
+
+    Raises:
+        PermissionDenied: Если пользователь не аутентифицирован
+    """
     if request.method == "POST":
         form = InstrumentForm(request.POST, files=request.FILES or None)
         if form.is_valid():
@@ -28,7 +43,24 @@ def instrument_create(request):
 
 @login_required
 def instrument_edit(request, instrument_id):
-    '''Редактирование записи под авторизацией.'''
+    """
+    Редактирование существующей записи об инструменте под авторизацией.
+
+    Проверяет права доступа пользователя к редактированию инструмента:
+    - Только автор инструмента может его редактировать
+    - При попытке редактирования чужого инструмента выполняется редирект на детальную страницу
+
+    Args:
+        request: HTTP запрос от пользователя
+        instrument_id (int): ID редактируемого инструмента
+
+    Returns:
+        HttpResponse: Страница с формой редактирования или редирект при отсутствии прав
+
+    Raises:
+        Http404: Если инструмент с указанным ID не существует
+        PermissionDenied: Если пользователь не аутентифицирован
+    """
     instrument = get_object_or_404(Instrument, id=instrument_id)
     if instrument.employee != request.user:
         return redirect('instruments:instrument_detail', instrument_id)
@@ -47,7 +79,18 @@ def instrument_edit(request, instrument_id):
 
 
 def index(request):
-    '''Главная страница c кешем 20 секунд.'''
+    """
+    Главная страница приложения со списком всех инструментов.
+
+    Отображает пагинированный список всех инструментов в системе.
+    Использует оптимизацию запросов через select_related для избежания N+1 проблемы.
+
+    Args:
+        request: HTTP запрос от пользователя
+
+    Returns:
+        HttpResponse: Главная страница с пагинированным списком инструментов
+    """
     instruments = Instrument.objects.select_related('employee')
     return render(
         request,
@@ -60,7 +103,22 @@ def index(request):
 
 
 def profile(request, username):
-    '''Страница профиля пользователя.'''
+    """
+    Страница профиля пользователя с его инструментами.
+
+    Отображает профиль указанного пользователя и список всех его инструментов.
+    Если пользователь не существует, возвращает 404 ошибку.
+
+    Args:
+        request: HTTP запрос от пользователя
+        username (str): Имя пользователя для отображения профиля
+
+    Returns:
+        HttpResponse: Страница профиля пользователя с его инструментами
+
+    Raises:
+        Http404: Если пользователь с указанным username не существует
+    """
     employee = get_object_or_404(User, username=username)
     instruments = Instrument.objects.select_related('employee').filter(
         employee__username=username
@@ -76,7 +134,24 @@ def profile(request, username):
 
 
 def instrument_detail(request, instrument_id):
-    '''Отдельная запись.'''
+    """
+    Детальная страница конкретного инструмента.
+
+    Отображает полную информацию об инструменте включая:
+    - Текст описания с результатами YOLO анализа
+    - Изображение с аннотациями
+    - Мета-информацию (автор, дата создания, ожидаемое количество объектов)
+
+    Args:
+        request: HTTP запрос от пользователя
+        instrument_id (int): ID инструмента для отображения
+
+    Returns:
+        HttpResponse: Детальная страница инструмента
+
+    Raises:
+        Http404: Если инструмент с указанным ID не существует
+    """
     instrument = get_object_or_404(
         Instrument.objects.select_related('employee'),
         id=instrument_id,

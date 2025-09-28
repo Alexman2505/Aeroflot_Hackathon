@@ -6,7 +6,7 @@
 
 
 
-version: '3.8'
+# version: '3.8'
 
 volumes:
   pg_data:
@@ -47,6 +47,28 @@ services:
       - app-network
 
 
+  # Сервис для выполнения миграций основного бэкенда
+  backend_migrations:
+    build: ./backend/
+    env_file: ./backend/.env
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+     sh -c "echo 'Ожидание базы данных...' &&
+           sleep 5 &&
+           echo 'Создание миграций...' &&
+           python manage.py makemigrations &&
+           echo 'Применение миграций основного бэкенда...' &&
+           python manage.py migrate &&
+           echo 'Миграции основного бэкенда успешно применены'"
+    profiles: ["migrate"]
+
+
   # Backend/AeroToolKit (запускаем на Gunicorn, а не стандартный manage.py)
   backend:
     build: ./backend/
@@ -67,21 +89,22 @@ services:
              python manage.py collectstatic --noinput &&
              gunicorn --workers 4 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
 
-  # Celery Worker
-  celery_worker:
-    build: ./backend/
-    env_file: ./backend/.env
-    volumes:
-      - ./backend:/app
-    networks:
-      - app-network
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    command: celery -A AeroToolKit worker --loglevel=info --concurrency=4
 
+  # celery_worker:
+  #   build: ./backend/
+  #   env_file: ./backend/.env
+  #   volumes:
+  #     - ./backend:/app
+  #   networks:
+  #     - app-network
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_started
+  #   command: >
+  #     sh -c "echo 'Запуск Celery worker...' &&
+  #            celery -A AeroToolKit worker --loglevel=info --concurrency=4"
 
 
   # # Celery Beat (периодические задачи)
@@ -99,6 +122,27 @@ services:
   #       condition: service_started
   #   command: celery -A image_service beat --loglevel=info
 
+
+  # Сервис для выполнения миграций photo server
+  photo_server_migrations:
+    build: ./photo_server/
+    env_file: ./photo_server/.env
+    volumes:
+      - ./photo_server:/app
+    networks:
+      - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "echo 'Ожидание базы данных...' &&
+             sleep 5 &&
+             echo 'Применение миграций photo server...' &&
+             python manage.py migrate &&
+             echo 'Миграции photo server успешно применены'"
+    profiles: ["migrate"]
+
+
   photo_server:
     build: ./photo_server/
     env_file: ./photo_server/.env
@@ -111,6 +155,6 @@ services:
     depends_on:
       - backend
     command: >
-      sh -c "python manage.py migrate &&
+      sh -c "echo 'Запуск photo server...' &&
              python manage.py collectstatic --noinput &&
              gunicorn --workers 4 --bind 0.0.0.0:8000 image_service.wsgi:application"

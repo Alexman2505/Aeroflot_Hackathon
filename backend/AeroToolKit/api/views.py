@@ -14,16 +14,35 @@ from .serializers import InstrumentSerializer, InstrumentCreateSerializer
 
 
 class ToolViewSet(viewsets.ViewSet):
-    """Вьюсет для проверки работы API"""
+    """
+    Вьюсет для проверки работоспособности API.
+
+    Предоставляет простой endpoint для проверки доступности API сервиса.
+    """
 
     def list(self, request):
+        """
+        Возвращает простое сообщение о работоспособности API.
+
+        Returns:
+            Response: JSON ответ с сообщением о статусе API
+        """
         return Response({"message": "API работает!"})
 
 
 class InstrumentViewSet(viewsets.ModelViewSet):
     """
-    ViewSet для работы с инструментами.
-    Вся логика создания в сериализаторе.
+    ViewSet для CRUD операций с инструментами.
+
+    Обеспечивает полный набор операций для работы с инструментами:
+    создание, чтение, обновление, удаление. Вся бизнес-логика создания
+    инструментов инкапсулирована в сериализаторе.
+
+    Attributes:
+        queryset: Базовый queryset для операций с БД
+        authentication_classes: Использует токен-аутентификацию
+        permission_classes: Требует аутентификации для всех операций
+        filter_backends: Поддерживает фильтрацию, поиск и сортировку
     """
 
     queryset = Instrument.objects.all()
@@ -32,19 +51,41 @@ class InstrumentViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     # Фильтрация, поиск, сортировка
-    filterset_fields = ['employee', 'pub_date']
-    search_fields = ['text', 'employee__username']
-    ordering_fields = ['pub_date', 'id', 'employee__username']
+    filterset_fields = ['employee', 'pub_date', 'expected_objects']
+    search_fields = ['text', 'employee__username', 'filename']
+    ordering_fields = [
+        'pub_date',
+        'id',
+        'employee__username',
+        'expected_objects',
+    ]
     ordering = ['-pub_date']
 
     def get_serializer_class(self):
-        """Выбираем сериализатор в зависимости от действия"""
+        """
+        Выбирает соответствующий сериализатор в зависимости от действия.
+
+        Для создания инструмента используется InstrumentCreateSerializer,
+        который включает специальную логику обработки base64 изображений.
+        Для остальных операций используется базовый InstrumentSerializer.
+
+        Returns:
+            Serializer: Выбранный класс сериализатора
+        """
         if self.action == 'create':
             return InstrumentCreateSerializer
         return InstrumentSerializer
 
     def get_queryset(self):
-        """Оптимизация запросов"""
+        """
+        Оптимизирует запросы к базе данных.
+
+        Использует select_related для избежания N+1 проблемы при загрузке
+        связанных данных пользователя.
+
+        Returns:
+            QuerySet: Оптимизированный queryset с предзагрузкой связанных объектов
+        """
         return super().get_queryset().select_related('employee')
 
     @swagger_auto_schema(
@@ -63,6 +104,16 @@ class InstrumentViewSet(viewsets.ModelViewSet):
                     description="Изображение в формате base64 (обязательно)",
                     example="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA...",
                 ),
+                'filename': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Исходное имя файла (опционально)",
+                    example="DSCN4946.JPG",
+                ),
+                'expected_objects': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Ожидаемое количество объектов (опционально)",
+                    example=11,
+                ),
             },
         ),
         responses={
@@ -72,15 +123,31 @@ class InstrumentViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         """
-        Создание инструмента.
-        Вся логика в сериализаторе - просто вызываем родительский метод.
+        Создает новый инструмент с обработкой изображения через YOLO.
+
+        Основная логика создания находится в сериализаторе InstrumentCreateSerializer,
+        который обрабатывает base64 изображение, выполняет детекцию объектов через YOLO
+        и сохраняет аннотированное изображение.
+
+        Args:
+            request: HTTP запрос с данными для создания инструмента
+            *args: Дополнительные позиционные аргументы
+            **kwargs: Дополнительные именованные аргументы
+
+        Returns:
+            Response: Ответ с созданным объектом или ошибками валидации
         """
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         """
-        Вызывается после валидации.
-        Вся логика уже в сериализаторе, просто сохраняем.
+        Выполняется после успешной валидации данных.
+
+        Поскольку вся бизнес-логика создания уже реализована в сериализаторе,
+        метод просто сохраняет объект в базу данных.
+
+        Args:
+            serializer: Валидированный сериализатор с данными для сохранения
         """
         serializer.save()
 
@@ -89,9 +156,29 @@ class InstrumentViewSet(viewsets.ModelViewSet):
 @permission_classes([AllowAny])
 def obtain_auth_token_csrf_exempt(request):
     """
-    Упрощенная CSRF-экземпempt версия получения токена.
-    """
+    Упрощенная CSRF-экземптная версия получения аутентификационного токена.
 
+    Предназначена для использования внешними клиентами и сервисами,
+    которые не могут работать с CSRF токенами Django.
+
+    Args:
+        request: HTTP POST запрос с данными аутентификации
+
+    Returns:
+        Response: JSON ответ с токеном аутентификации или ошибкой
+
+    Example:
+        POST /api-token-auth/
+        {
+            "username": "user@example.com",
+            "password": "password123"
+        }
+
+        Response:
+        {
+            "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
+        }
+    """
     username = request.data.get('username')
     password = request.data.get('password')
 

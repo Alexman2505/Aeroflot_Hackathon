@@ -26,9 +26,9 @@
             <div class="section">
                 <h2>Как работает этот сервис</h2>
                 <ol style="padding-left: 20px; margin: 10px 0;">
-                    <li>Авторизуйтесь с помощью логина и пароля от аккаунта в AeroToolKit (— Девятнадцать… без пяти.)</li>
-                    <li>Система автоматически получит токен доступа для вашего аккаунта (— Мена? Мена!)</li>
-                    <li>Выберите изображения (можно сразу несколько) для отправк на сервис AeroToolKit (— Пошло!)</li>
+                    <li>Авторизуйтесь с помощью логина и пароля от аккаунта в AeroToolKit (Девятнадцать… без пяти.)</li>
+                    <li>Система автоматически получит токен доступа для вашего аккаунта (Мена? Мена!)</li>
+                    <li>Выберите изображения (можно сразу несколько) для отправк на сервис AeroToolKit (Пошло!)</li>
                     <li>Система Image Encodings Service (этот сайт) закодирует изображения в base64 и отправит в виде json объекта на сервер AeroToolKit на ваш аккаунт (ПА!)</li>
                 </ol>
             </div>
@@ -104,7 +104,7 @@
 
                     {% comment %} количество предметов {% endcomment %}
                     <div class="form-group">
-                        <label for="expected_objects">Введите ожидаемое количество сдаваемых инструментов сотрудником</label>
+                        <label for="expected_objects">Введите ожидаемое количество сдаваемых сотрудником инструментов</label>
                         <input type="number" id="expected_objects" name="expected_objects"
                             min="1" max="50" value="11" required
                             placeholder="Сколько предметов ожидаете увидеть на фото">
@@ -113,9 +113,9 @@
 
                     {% comment %} количество предметов {% endcomment %}
                     <div class="form-group">
-                        <label for="expected_objects">Введите "Уровень уверенности" распознования каждого отдельного инструмента на фотографии*</label>
-                        <input type="number" id="expected_ confidence" name="expected_accuracy"
-                            min="0.1" max="1" step="0.01" value="0.90"  required
+                        <label for="expected_confidence">Введите "Уровень уверенности" распознования каждого отдельного инструмента на фотографии*</label>
+                        <input type="number" id="expected_confidence" name="expected_confidence"
+                            min="0.1" max="1" step="0.01" value="0.80"  required
                             placeholder="Точность распознования модели">
                         <small style="color: #666;">"Уровень уверенности" - это вероятность правильного распознавания каждого отдельного инструмента на фотографии</small>
                     </div>
@@ -138,6 +138,16 @@
             {% if step == 'results' %}
             <div class="section">
                 <h2>Результаты отправки</h2>
+                            <!-- Параметры отправки -->
+                            <div class="status-item">
+                                <span class="status-label">Ожидаемое количество объектов:</span>
+                                <span class="status-count status-delivered">{{ expected_objects }}</span>
+                            </div>
+
+                            <div class="status-item">
+                                <span class="status-label">Ожидаемая уверенность распознавания:</span>
+                                <span class="status-count status-delivered">{{ expected_confidence }}</span>
+                            </div>
 
                             <!-- Успешно отправленные и распознанные -->
                             {% if success_count > 0 %}

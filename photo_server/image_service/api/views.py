@@ -101,6 +101,8 @@ def handle_image_upload(request, context):
     token = request.POST.get('api_token', '').strip()
     name = request.session.get('sender_name', '')
     image_files = request.FILES.getlist('images')
+    expected_objects = request.POST.get('expected_objects', '11')
+    expected_confidence = request.POST.get('expected_confidence', '0.90')
 
     if token and name and image_files:
         processed_images = []
@@ -123,7 +125,14 @@ def handle_image_upload(request, context):
             )
 
             # Отправляем на внешний API
-            result = send_to_aerotoolkit_api(name, full_base64_string, token)
+            result = send_to_aerotoolkit_api(
+                name=name,
+                full_base64_string=full_base64_string,
+                token=token,
+                filename=image_file.name,
+                expected_objects=expected_objects,
+                expected_confidence=expected_confidence,
+            )
 
             if result == "success":
                 success_count += 1
@@ -141,6 +150,8 @@ def handle_image_upload(request, context):
                     'base64_string': base64_string,
                     'format': image_format,
                     'size': len(image_data),
+                    'expected_objects': expected_objects,
+                    'expected_confidence': expected_confidence,
                 }
             )
 
@@ -161,6 +172,8 @@ def handle_image_upload(request, context):
                 'full_base64_string': (
                     first_image['full_base64_string'] if first_image else ''
                 ),
+                'expected_objects': expected_objects,
+                'expected_confidence': expected_confidence,
             }
         )
     else:
@@ -251,19 +264,35 @@ def get_auth_token(username, password, auth_url=None):
         return None
 
 
-def send_to_aerotoolkit_api(name, full_base64_string, token):
+def send_to_aerotoolkit_api(
+    name,
+    full_base64_string,
+    token,
+    filename=None,
+    expected_objects=None,
+    expected_confidence=None,
+):
     """
     Отправляет одно изображение на API AeroToolKit.
     """
+    print(
+        f"Отправка данных: filename={filename}, expected_objects={expected_objects}"
+    )
     text = (
         f"Фотография автоматически загружена через систему фотофиксации.\n"
         f"Сотрудник, отправивший фотографию: {name}\n"
-        f"Локальное время отправки с сервера фотофиксации PhotoService: {timezone.now().strftime('%d.%m.%Y %H:%M:%S')}"
+        f"Локальное время отправки с сервера фотофиксации PhotoService: {timezone.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
+        f"Название файла: {filename if filename else 'не указано'}\n"
+        f"Ожидаемое количество объектов: {expected_objects if expected_objects else '11'}\n"
+        f"Ожидаемая уверенность распознавания: {expected_confidence if expected_confidence else '0.90'}"
     )
 
     payload = {
         "text": text,
         "full_base64_string": full_base64_string,
+        "filename": filename,
+        "expected_objects": expected_objects,
+        "expected_confidence": expected_confidence,
     }
 
     headers = {
@@ -282,33 +311,26 @@ def send_to_aerotoolkit_api(name, full_base64_string, token):
         print(f"Статус ответа: {response.status_code}")
         print(f"Текст ответа: {response.text}")
 
-        # ПРАВИЛЬНАЯ логика обработки статусов:
         if response.status_code in [200, 201]:
-            # Успех - файл доставлен И обработан
             print("Изображение успешно отправлено и распознано")
             return "success"
 
         elif 400 <= response.status_code < 500:
-            # Клиентские ошибки - файл ДОСТАВЛЕН, но сервер отверг запрос
-            # (неправильный токен, невалидные данные, нет прав и т.д.)
             print(
                 f"Файл доставлен, но сервер отверг запрос: {response.status_code}"
             )
             return "delivered_but_rejected"
 
         elif response.status_code >= 500:
-            # Серверные ошибки - файл ДОСТАВЛЕН, но сервер упал
             print(
                 f"Файл доставлен, но серверная ошибка: {response.status_code}"
             )
             return "delivered_but_server_error"
 
         else:
-            # Другие статусы (редиректы и т.д.)
             print(f"Неожиданный статус: {response.status_code}")
             return "delivery_failed"
 
     except requests.exceptions.RequestException as e:
-        # Сетевые ошибки - файл НЕ доставлен
         print(f"Ошибка подключения (файл не доставлен): {e}")
         return "delivery_failed"

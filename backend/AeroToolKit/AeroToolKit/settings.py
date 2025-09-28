@@ -175,8 +175,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 # Celery
-CELERY_BROKER_URL = 'redis://redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+# CELERY_BROKER_URL = 'redis://redis:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 
 
 LOGIN_URL = 'users:login'
@@ -217,3 +217,33 @@ SWAGGER_SETTINGS = {
 REDOC_SETTINGS = {
     'LAZY_RENDERING': False,
 }
+# YOLO_CLASSES = [
+#     '1_отвертка_минус',  # Отвертка «-»
+#     '2_отвертка_плюс',  # Отвертка «+»
+#     '3_отвертка_смещенный_крест',  # Отвертка на смещенный крест
+#     '4_коловорот',  # Коловорот
+#     '5_пассатижи_контровочные',  # Пассатижи контровочные
+#     '6_пассатижи',  # Пассатижи
+#     '7_шэрница',  # Шэрница клещи переставные
+#     '8_разводной_ключ',  # Разводной ключ
+#     '9_открывашка_для_банок',  # Открывашка для банок с маслом
+#     '10_ключ_рожковый_накидной',  # Ключ рожковый накидной ¾
+#     '11_бокорезы',  # Бокорезы
+# ]
+YOLO_CLASSES = [
+    '1_otvertka_minus',
+    '2_otvertka_plus',
+    '3_otvertka_smeshchennyy_krest',
+    '4_kolovorot',
+    '5_passatizhi_kontrovochnye',
+    '6_passatizhi',
+    '7_kleschi_perestavnye_shernica',
+    '8_razvodnoy_klyuch',
+    '9_otkryvashka_dlya_banok',
+    '10_klyuch_rozhkovyy_nakidnoy_3/4',
+    '11_bokorezy',
+]
+# Ожидаемое количество предметов на фотографии
+EXPECTED_OBJECTS = 11
+# Уверенность, что инструмент распознан правильно
+EXPECTED_CONFIDENCE = 0.90
