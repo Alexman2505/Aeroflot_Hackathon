@@ -24,12 +24,12 @@
         <div class="content">
             <!-- Информация о сервисе -->
             <div class="section">
-                <h2>Как работает сервис</h2>
+                <h2>Как работает этот сервис</h2>
                 <ol style="padding-left: 20px; margin: 10px 0;">
-                    <li>Авторизуйтесь с помощью логина и пароля от AeroToolKit</li>
-                    <li>Система получит токен доступа автоматически</li>
-                    <li>Выберите изображения для отправки</li>
-                    <li>Система закодирует изображения в base64 и отправит на сервер AeroToolKit</li>
+                    <li>Авторизуйтесь с помощью логина и пароля от аккаунта в AeroToolKit (— Девятнадцать… без пяти.)</li>
+                    <li>Система автоматически получит токен доступа для вашего аккаунта (— Мена? Мена!)</li>
+                    <li>Выберите изображения (можно сразу несколько) для отправк на сервис AeroToolKit (— Пошло!)</li>
+                    <li>Система Image Encodings Service (этот сайт) закодирует изображения в base64 и отправит в виде json объекта на сервер AeroToolKit на ваш аккаунт (ПА!)</li>
                 </ol>
             </div>
 
@@ -83,10 +83,11 @@
             {% if step == 'upload' %}
             <div class="section">
                 <h2>Загрузка изображений</h2>
-                <p>Вы авторизованы как: <strong>{{ username }}</strong></p>
+                <p>Вы аутентифицированы (авторизованы по вашему токену) как: <strong>{{ username }}</strong></p>
 
                 <div class="token-display">
-                    <strong>Токен:</strong> {{ token }}
+                    <strong>Токен пользователя успешно получен от сервера AeroToolKit и вставлен в JSON объект в формате:</strong>
+                    <p><strong>Token {{ token }}</strong></p>
                 </div>
 
                 <br>
@@ -101,8 +102,26 @@
                     {% csrf_token %}
                     <input type="hidden" name="api_token" value="{{ token }}">
 
+                    {% comment %} количество предметов {% endcomment %}
                     <div class="form-group">
-                        <label for="images">Выберите изображения (можно несколько) *</label>
+                        <label for="expected_objects">Введите ожидаемое количество сдаваемых инструментов сотрудником</label>
+                        <input type="number" id="expected_objects" name="expected_objects"
+                            min="1" max="50" value="11" required
+                            placeholder="Сколько предметов ожидаете увидеть на фото">
+                        <small style="color: #666;">"По умолчанию" ml-модель может определить <strong>до 11 РАЗНЫХ</strong> предметов на одной фотографии</small>
+                    </div>
+
+                    {% comment %} количество предметов {% endcomment %}
+                    <div class="form-group">
+                        <label for="expected_objects">Введите "Уровень уверенности" распознования каждого отдельного инструмента на фотографии*</label>
+                        <input type="number" id="expected_ confidence" name="expected_accuracy"
+                            min="0.1" max="1" step="0.01" value="0.90"  required
+                            placeholder="Точность распознования модели">
+                        <small style="color: #666;">"Уровень уверенности" - это вероятность правильного распознавания каждого отдельного инструмента на фотографии</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="images">Выберите изображения (можно сразу несколько) *</label>
                         <input type="file" id="images" name="images" accept="image/*" multiple required>
                     </div>
 
@@ -131,7 +150,7 @@
                             <!-- Файл доставлен, но сервер отверг (4xx) -->
                             {% if rejected_count > 0 %}
                             <div class="status-item">
-                                <span class="status-label">Доставлен, но отвергнут сервером (ошибка 4xx):</span>
+                                <span class="status-label">Фото доставлены, но отвергнут сервером (ошибка 4xx):</span>
                                 <span class="status-count status-delivered">{{ rejected_count }}</span>
                             </div>
                             {% endif %}
@@ -139,7 +158,7 @@
                             <!-- Файл доставлен, но сервер упал (5xx) -->
                             {% if server_error_count > 0 %}
                             <div class="status-item">
-                                <span class="status-label">Доставлен, ошибка сервера (5xx):</span>
+                                <span class="status-label">Фото доставлены, ошибка сервера (5xx):</span>
                                 <span class="status-count status-delivered">{{ server_error_count }}</span>
                             </div>
                             {% endif %}
@@ -170,7 +189,7 @@
                         {% if server_error_count > 0 %}
                         <div class="warning-message">
                             <strong>Внимание:</strong> Файлы были доставлены на сервер AeroToolKit, но сервер вернул ошибку (5xx).
-                            Это внутренняя ошибка сервера. Попробуйте отправить позже.
+                            Это внутренняя ошибка сервера AeroToolKit. Попробуйте отправить позже.
                         </div>
                         {% endif %}
 

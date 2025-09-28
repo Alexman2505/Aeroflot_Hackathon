@@ -39,7 +39,8 @@ six==1.16.0
 sorl-thumbnail==12.10.0
 sqlparse==0.5.3
 sympy==1.14.0
-onnxruntime==1.17.0
+# onnxruntime==1.17.0
+onnxruntime
 typing_extensions==4.15.0
 tzdata==2025.2
 uritemplate==4.2.0
