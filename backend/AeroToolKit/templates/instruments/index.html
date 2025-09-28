@@ -4,6 +4,7 @@
   {% load cache %}
   {% cache 5 index_page page_obj.number %}
   <h1>Последние обновления на сервере</h1>
+  </br>
   {% comment %} {% include 'includes/switcher.html' %} {% endcomment %}
   {% for instrument in page_obj %}
     {% include 'includes/general.html' %}
