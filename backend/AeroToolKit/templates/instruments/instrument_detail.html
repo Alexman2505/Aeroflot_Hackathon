@@ -9,8 +9,6 @@
         <aside class="col-12 col-md-3">
           <ul class="list-group list-group-flush">
             <li class="list-group-item d-flex justify-content-between align-items-center">Дата и время обработки изображения: <span>{{ instrument.pub_date|date:"d.m.Y в H:i:s" }}</span></li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-            </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">Сотрудник: <span>{{ instrument.employee.get_full_name }}</span></li>
             <li class="list-group-item d-flex justify-content-between align-items-center">Количество записей:<span>{{ instrument.employee.instruments.count }}</span></li>
             <li class="list-group-item d-flex justify-content-between align-items-center">

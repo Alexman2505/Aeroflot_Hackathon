@@ -1,39 +1,24 @@
 {% load instruments_filters %}
 {% load thumbnail %}
 <article>
-      {% thumbnail instrument.image "960x339" upscale=True as im %}
-        <img class="card-img my-2" src="{{ im.url }}" style="width: 10%; height: 10%;">
-      {% endthumbnail %}
-  <!-- Блок информации о распознавании -->
-          <div class="recognition-info">
-              <p class="text-success">
-                <strong>Планируемое количество инструментов:</strong> {{ instrument.expected_objects|default:"11" }}
-              </p>
-              <p class="text-success">
-                <strong>Распознанное моделью количество инструментов:</strong> {{ instrument.text|extract_detected_count_filter }}
-              </p>
-            {% if instrument.text|extract_detected_count_filter == instrument.expected_objects %}
-              <p class="text-success">
-                <strong>Количество инструментов совпадает</strong>
-              </p>
-          {% else %}
-                <p class="text-danger">
-                  <strong>Количество инструментов не совпадает</strong>
-                </p>
-          {% endif %}
-        </div>
+    {% thumbnail instrument.image "960x339" upscale=True as im %}
+    <img class="card-img my-2" src="{{ im.url }}" style="width: 10%; height: 10%;">
+    {% endthumbnail %}
+    <!-- Блок информации о распознавании -->
+    <div class="recognition-info">
+        <div class="text-success"><strong>Планируемое количество инструментов:</strong> {{ instrument.expected_objects }}</div>
+        <div class="text-success"><strong>Распознанное моделью количество инструментов:</strong> {{ instrument.text|extract_detected_count_filter }}</div>
+        {% if instrument.text|extract_detected_count_filter == instrument.expected_objects %}
+        <div class="text-success"><strong>Количество инструментов совпадает</strong></div>
+        {% else %}
+        <div class="text-danger"><strong>Количество инструментов не совпадает</strong></div>
+        {% endif %}
+    </div>
     {% if not hide_employee_links %}
-        Сотрудник: {% firstof instrument.employee.get_full_name instrument.employee.username %}</br>
-
-        <a href="{% url 'instruments:profile' instrument.employee.username %}">Список записей инструментов этим сотрудником</br></a>
+    Сотрудник: {% firstof instrument.employee.get_full_name instrument.employee.username %}<br>
+    <a href="{% url 'instruments:profile' instrument.employee.username %}">Список записей инструментов этим сотрудником</a><br>
     {% endif %}
-        Локальное время получения изображения сервером распознования AeroToolKit: {{ instrument.pub_date|date:"d.m.Y H:i:s" }}
-
-
-  <p>
-
-  {{ instrument.text|linebreaksbr }}
-</p>
-<a href="{% url 'instruments:instrument_detail' instrument.pk %}">подробная информация о записи</a>
+    <a href="{% url 'instruments:instrument_detail' instrument.pk %}">Подробная информация о записи</a><br>
+    Локальное время получения изображения сервером распознования AeroToolKit: {{ instrument.pub_date|date:"d.m.Y H:i:s" }}
 </article>
 {% if not forloop.last %}<hr>{% endif %}

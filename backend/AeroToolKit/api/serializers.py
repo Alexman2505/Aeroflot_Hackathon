@@ -122,9 +122,10 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
             # Извлекаем дополнительные параметры
             filename = validated_data.pop("filename", None)
             expected_objects = validated_data.pop("expected_objects", None)
-            expected_confidence = validated_data.pop(
-                "expected_confidence", settings.EXPECTED_CONFIDENCE
-            )
+            expected_confidence = validated_data.pop("expected_confidence")
+            # expected_confidence = validated_data.pop(
+            #     "expected_confidence", settings.EXPECTED_CONFIDENCE
+            # )
 
             # Декодируем base64 изображение
             base64_data = full_base64_string.split(",", 1)[1]
@@ -149,6 +150,7 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
             try:
                 yolo_results, processed_image_bytes = run_yolo_inference(
                     image_data,
+                    conf_thres=expected_confidence,
                     expected_objects=expected_objects,
                     expected_confidence=expected_confidence,
                 )

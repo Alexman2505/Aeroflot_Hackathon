@@ -1,13 +1,7 @@
-#Сервис на питоне 3.10 работает
+# Сервис на питоне 3.10 работает
 FROM python:3.10
 
 WORKDIR /app
-
-# # Устанавливаем зависимости для PostgreSQL
-# RUN apt-get update && apt-get install -y \
-#     postgresql-client \
-#     netcat-openbsd \
-#     && rm -rf /var/lib/apt/lists/*
 
 # Копируем requirements
 COPY requirements.txt .
@@ -27,4 +21,5 @@ EXPOSE 8000
 # Переходим в папку с Django проектом
 WORKDIR /app/AeroToolKit
 
+# ТОЛЬКО запуск сервера, без миграций
 CMD ["gunicorn", "AeroToolKit.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4"]

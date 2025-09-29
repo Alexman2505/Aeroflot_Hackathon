@@ -180,19 +180,52 @@ def process_yolo_output(
     # Извлекаем bounding boxes и scores
     boxes_xywh = out[:, :4].copy()  # x_center, y_center, width, height
     scores_all = out[:, 4:]  # scores для каждого класса
+    print(f"1 DEBUG scores_all = {scores_all}", flush=True)
 
     # Определяем классы и их уверенности
     class_ids = np.argmax(scores_all, axis=1)
-    class_scores = scores_all[np.arange(scores_all.shape[0]), class_ids]
+    # Округляем до 3го знака после запятой
+    class_scores = np.round(
+        scores_all[np.arange(scores_all.shape[0]), class_ids], 3
+    )
+    print(f"2 DEBUG class_scores = {class_scores}", flush=True)
 
-    # Фильтруем по порогу уверенности
-    mask = class_scores > conf_thres
+    # Добавляем эпсилон-поправку
+    epsilon = 1e-3
+    effective_threshold = conf_thres - epsilon
+
+    print(
+        f"3 DEBUG process_yolo_output: conf_thres={conf_thres}, effective_threshold={effective_threshold}",
+        flush=True,
+    )
+
+    # Фильтруем по порогу уверенности с поправкой
+    mask = class_scores >= effective_threshold
+
+    print(
+        f"4 DEBUG: class_scores >= effective_threshold: {class_scores >= effective_threshold}",
+        flush=True,
+    )
+    print(f"5 DEBUG: Total above threshold: {np.sum(mask)}", flush=True)
+
     if not mask.any():
+        print("6 DEBUG: No detections above threshold!", flush=True)
         return []
 
     boxes_xywh = boxes_xywh[mask]
     class_scores = class_scores[mask]
     class_ids = class_ids[mask]
+
+    # КРИТИЧЕСКИ ВАЖНАЯ ОТЛАДКА
+    print(
+        f"7 DEBUG: After confidence filtering - {len(boxes_xywh)} detections",
+        flush=True,
+    )
+    print(f"8 DEBUG: Unique classes: {np.unique(class_ids)}", flush=True)
+    print(
+        f"9 DEBUG: Score range: {class_scores.min():.6f} to {class_scores.max():.6f}",
+        flush=True,
+    )
 
     # Конвертируем в формат xyxy
     boxes_xyxy = xywh2xyxy(boxes_xywh)
@@ -205,11 +238,27 @@ def process_yolo_output(
     # Выполняем NMS для каждого класса отдельно
     final = []
     unique_classes = np.unique(class_ids)
+
+    print(
+        f"10 DEBUG: Starting NMS for {len(unique_classes)} classes", flush=True
+    )
+
+    total_before_nms = 0
+    total_after_nms = 0
+
     for c in unique_classes:
         idxs = np.where(class_ids == c)[0]
         b = boxes_xyxy[idxs]
         s = class_scores[idxs]
+
+        class_count_before = len(b)
+        total_before_nms += class_count_before
+
         keep = nms(b, s, iou_thres=iou_thres)
+
+        class_count_after = len(keep)
+        total_after_nms += class_count_after
+
         for k in keep:
             final.append(
                 {
@@ -248,10 +297,6 @@ def run_yolo_inference(
     if expected_confidence is not None:
         conf_thres = float(expected_confidence)
 
-    print(
-        f"Параметры YOLO: conf_thres={conf_thres}, iou_thres={iou_thres}, expected_objects={expected_objects}"
-    )
-
     start = time.time()
 
     # Загружаем изображение
@@ -280,9 +325,16 @@ def run_yolo_inference(
     draw = ImageDraw.Draw(image)
 
     try:
-        font = ImageFont.load_default()
-    except Exception:
-        font = None
+        # Пробуем загрузить шрифт большого размера
+        font = ImageFont.truetype(
+            "arial.ttf", 50
+        )  # 50 пикселей - примерно в 5 раз больше
+    except:
+        try:
+            font = ImageFont.truetype("DejaVuSans.ttf", 50)
+        except:
+            # Если системные шрифты недоступны, оставляем default
+            font = ImageFont.load_default()
 
     for det in detections_raw:
         x1, y1, x2, y2 = det["bbox"]
@@ -310,9 +362,9 @@ def run_yolo_inference(
         detections.append({"class": cls_name, "confidence": score})
 
         # Рисуем bounding box и подпись
-        draw.rectangle([x1, y1, x2, y2], outline="red", width=3)
+        draw.rectangle([x1, y1, x2, y2], outline="white", width=10)
         label = f"{cls_name} {score:.2f}"
-        text_pos = (x1, max(0, y1 - 12))
+        text_pos = (x1, max(0, y1 - 50))
         draw.text(text_pos, label, fill="red", font=font)
 
     # Вычисляем время обработки

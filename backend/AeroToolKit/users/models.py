@@ -60,4 +60,4 @@ class CustomUser(AbstractUser):
         Returns:
             str: Строка в формате "username (employee_id)"
         """
-        return f'Сотрудник {self.employee_id}'
+        return f'Сотрудник {self.first_name} {self.last_name}'

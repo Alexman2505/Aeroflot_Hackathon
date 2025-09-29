@@ -40,11 +40,11 @@ services:
       retries: 5
 
 
-  # База данных Redis для Celery
-  redis:
-    image: redis:7-alpine
-    networks:
-      - app-network
+  # # База данных Redis для Celery
+  # redis:
+  #   image: redis:7-alpine
+  #   networks:
+  #     - app-network
 
 
   # Сервис для выполнения миграций основного бэкенда
@@ -59,15 +59,14 @@ services:
       db:
         condition: service_healthy
     command: >
-     sh -c "echo 'Ожидание базы данных...' &&
-           sleep 5 &&
-           echo 'Создание миграций...' &&
-           python manage.py makemigrations &&
-           echo 'Применение миграций основного бэкенда...' &&
-           python manage.py migrate &&
-           echo 'Миграции основного бэкенда успешно применены'"
+      sh -c "echo 'Ожидание базы данных...' &&
+          sleep 5 &&
+          echo 'Создание миграций для всех apps...' &&
+          python manage.py makemigrations users instruments thumbnail &&
+          echo 'Применение миграций основного бэкенда...' &&
+          python manage.py migrate &&
+          echo 'Миграции основного бэкенда успешно применены'"
     profiles: ["migrate"]
-
 
   # Backend/AeroToolKit (запускаем на Gunicorn, а не стандартный manage.py)
   backend:
@@ -82,8 +81,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_started
+      # redis:
+      #   condition: service_started
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
