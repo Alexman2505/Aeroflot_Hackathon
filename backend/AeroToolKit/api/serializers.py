@@ -162,22 +162,6 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
             # Формируем итоговый текст с информацией о файле и результатами YOLO
             original_text = validated_data.get("text", "")
 
-            # Добавляем информацию о файле и ожиданиях
-            file_info = []
-            if filename:
-                file_info.append(f"Исходное имя файла: {filename}")
-            if expected_objects:
-                file_info.append(
-                    f"Ожидаемое количество объектов: {expected_objects}"
-                )
-            if expected_confidence:
-                file_info.append(
-                    f"Ожидаемая уверенность распознавания: {expected_confidence}"
-                )
-
-            if file_info:
-                original_text += "\n\n" + "\n".join(file_info)
-
             # Добавляем результаты YOLO анализа
             validated_data["text"] = self.add_yolo_results_to_text(
                 original_text, yolo_results
