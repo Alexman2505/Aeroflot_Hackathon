@@ -14,11 +14,9 @@
         <div class="text-danger"><strong>Количество инструментов не совпадает</strong></div>
         {% endif %}
     </div>
-    {% if not hide_employee_links %}
-    Сотрудник: {% firstof instrument.employee.get_full_name instrument.employee.username %}<br>
+    Сотрудник: <strong>{% firstof instrument.employee.get_full_name instrument.employee.username %}</strong><br>
+    Локальное время (сервера AeroToolKit) получения изображения: <strong>{{ instrument.pub_date|date:"d.m.Y H:i:s" }}</strong><br>
     <a href="{% url 'instruments:profile' instrument.employee.username %}">Список записей инструментов этим сотрудником</a><br>
-    {% endif %}
     <a href="{% url 'instruments:instrument_detail' instrument.pk %}">Подробная информация о записи</a><br>
-    Локальное время получения изображения сервером распознования AeroToolKit: {{ instrument.pub_date|date:"d.m.Y H:i:s" }}
 </article>
 {% if not forloop.last %}<hr>{% endif %}

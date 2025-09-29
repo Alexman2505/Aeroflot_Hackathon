@@ -1,7 +1,7 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db import models
-
 
 User = get_user_model()
 
@@ -42,6 +42,13 @@ class Instrument(models.Model):
         help_text="Количество предметов, которые должны быть распознаны на изображении",
         default=11,
         blank=True,
+    )
+
+    expected_confidence = models.FloatField(
+        verbose_name="Ожидаемая уверенность распознавания",
+        help_text="Минимальный уровень уверенности для детекции объектов (от 0 до 1)",
+        default=0.9,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
     )
 
     filename = models.CharField(

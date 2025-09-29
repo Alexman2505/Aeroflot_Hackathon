@@ -61,7 +61,7 @@ def instrument_edit(request, instrument_id):
         Http404: Если инструмент с указанным ID не существует
         PermissionDenied: Если пользователь не аутентифицирован
     """
-    instrument = get_object_or_404(Instrument, id=instrument_id)
+    instrument = get_object_or_404(Instrument, pk=instrument_id)
     if instrument.employee != request.user:
         return redirect('instruments:instrument_detail', instrument_id)
     form = InstrumentForm(
@@ -154,9 +154,9 @@ def instrument_detail(request, instrument_id):
     """
     instrument = get_object_or_404(
         Instrument.objects.select_related('employee'),
-        id=instrument_id,
+        pk=instrument_id,
     )
-    employee = request.user.id
+    employee = request.user.pk
     return render(
         request,
         'instruments/instrument_detail.html',
@@ -164,4 +164,43 @@ def instrument_detail(request, instrument_id):
             'instrument': instrument,
             'employee': employee,
         },
+    )
+
+
+@login_required
+def instrument_delete(request, instrument_id):
+    """
+    Удаление записи об инструменте под авторизацией пользователя.
+
+    Проверяет права доступа пользователя на удаление инструмента:
+    - Только автор инструмента может его удалить
+    - При попытке удаления чужого инструмента выполняется редирект на детальную страницу
+    - Подтверждение удаления происходит через POST запрос
+
+    Args:
+        request: HTTP запрос от пользователя
+        instrument_id (int): ID инструмента для удаления
+
+    Returns:
+        HttpResponse:
+            - Страница подтверждения удаления (GET)
+            - Редирект на главную страницу после успешного удаления (POST)
+            - Редирект на детальную страницу при отсутствии прав доступа
+
+    Raises:
+        Http404: Если инструмент с указанным ID не существует
+        PermissionDenied: Если пользователь не аутентифицирован
+    """
+    instrument = get_object_or_404(Instrument, pk=instrument_id)
+    if instrument.employee != request.user:
+        return redirect(
+            'instruments:instrument_detail', instrument_id=instrument_id
+        )
+    if request.method == "POST":
+        instrument.delete()
+        return redirect('instruments:index')
+    return render(
+        request,
+        'instruments/confirm_delete.html',
+        {'instrument': instrument},
     )

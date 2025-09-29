@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}
+  Подтверждение удаления
+{% endblock title %}
+{% block content %}
+  <h1>Вы уверены, что хотите удалить?</h1>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Подтвердить удаление</button>
+  </form>
+</br>
+<a href="{% url 'instruments:instrument_detail' instrument.id %}"
+   class="btn btn-secondary">Отмена</a>
+{% endblock content %}

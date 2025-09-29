@@ -31,6 +31,7 @@ class InstrumentSerializer(serializers.ModelSerializer):
             'image',
             'image_url',
             'expected_objects',
+            'expected_confidence',
             'filename',
         ]
         read_only_fields = ['employee', 'pub_date']
@@ -64,11 +65,9 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
     full_base64_string = serializers.CharField(write_only=True, required=True)
     image = serializers.ImageField(read_only=True)
     filename = serializers.CharField(write_only=True, required=False)
-    expected_objects = serializers.IntegerField(
-        write_only=True, required=False
-    )
+    expected_objects = serializers.IntegerField(write_only=True, required=True)
     expected_confidence = serializers.FloatField(
-        write_only=True, required=False
+        write_only=True, required=True
     )
 
     class Meta:
@@ -105,6 +104,28 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
             )
         elif not full_base64_string.startswith('data:image/'):
             errors['full_base64_string'] = 'Неверный формат base64'
+
+        # Проверка expected_objects
+        expected_objects = attrs.get('expected_objects')
+        if expected_objects is None:
+            errors['expected_objects'] = (
+                'Ожидаемое количество объектов обязательно'
+            )
+        elif expected_objects <= 0:
+            errors['expected_objects'] = (
+                'Количество объектов должно быть положительным числом'
+            )
+
+        # Проверка expected_confidence
+        expected_confidence = attrs.get('expected_confidence')
+        if expected_confidence is None:
+            errors['expected_confidence'] = (
+                'Ожидаемая уверенность распознавания обязательна'
+            )
+        elif not (0 < expected_confidence <= 1):
+            errors['expected_confidence'] = (
+                'Уверенность распознавания должна быть между 0 и 1'
+            )
 
         if errors:
             raise serializers.ValidationError(errors)

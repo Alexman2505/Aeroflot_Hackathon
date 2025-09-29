@@ -20,6 +20,21 @@ class ToolViewSet(viewsets.ViewSet):
     Предоставляет простой endpoint для проверки доступности API сервиса.
     """
 
+    @swagger_auto_schema(
+        operation_description="Проверка работоспособности API сервиса",
+        operation_summary="Проверка API",
+        responses={
+            200: openapi.Response(
+                'API работает',
+                openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING)
+                    },
+                ),
+            )
+        },
+    )
     def list(self, request):
         """
         Возвращает простое сообщение о работоспособности API.
@@ -92,7 +107,12 @@ class InstrumentViewSet(viewsets.ModelViewSet):
         operation_description="Создание инструмента с обязательной загрузкой изображения в base64",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['text', 'full_base64_string'],
+            required=[
+                'text',
+                'full_base64_string',
+                'expected_objects',
+                'expected_confidence',
+            ],
             properties={
                 'text': openapi.Schema(
                     type=openapi.TYPE_STRING,
@@ -111,8 +131,13 @@ class InstrumentViewSet(viewsets.ModelViewSet):
                 ),
                 'expected_objects': openapi.Schema(
                     type=openapi.TYPE_INTEGER,
-                    description="Ожидаемое количество объектов (опционально)",
+                    description="Ожидаемое количество объектов (обязательно)",
                     example=11,
+                ),
+                'expected_confidence': openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="Ожидаемая уверенность распознавания (обязательно)",
+                    example=0.9,
                 ),
             },
         ),
@@ -151,7 +176,101 @@ class InstrumentViewSet(viewsets.ModelViewSet):
         """
         serializer.save()
 
+    @swagger_auto_schema(
+        operation_description="Получить список всех инструментов с поддержкой фильтрации, поиска и сортировки",
+        operation_summary="Список инструментов",
+        responses={
+            200: openapi.Response(
+                'Успешный ответ', InstrumentSerializer(many=True)
+            ),
+            401: openapi.Response('Требуется аутентификация'),
+        },
+    )
+    def list(self, request, *args, **kwargs):
+        """Получить пагинированный список инструментов"""
+        return super().list(request, *args, **kwargs)
 
+    @swagger_auto_schema(
+        operation_description="Получить детальную информацию о конкретном инструменте по ID",
+        operation_summary="Детальная информация об инструменте",
+        responses={
+            200: openapi.Response('Успешный ответ', InstrumentSerializer),
+            404: openapi.Response('Инструмент не найден'),
+        },
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """Получить инструмент по ID"""
+        return super().retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Полное обновление инструмента. Все поля обязательны.",
+        operation_summary="Полное обновление инструмента",
+        request_body=InstrumentSerializer,
+        responses={
+            200: openapi.Response('Успешное обновление', InstrumentSerializer),
+            400: openapi.Response('Ошибка валидации'),
+            404: openapi.Response('Инструмент не найден'),
+        },
+    )
+    def update(self, request, *args, **kwargs):
+        """Полное обновление инструмента"""
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Частичное обновление инструмента. Только указанные поля будут обновлены.",
+        operation_summary="Частичное обновление инструмента",
+        request_body=InstrumentSerializer,
+        responses={
+            200: openapi.Response('Успешное обновление', InstrumentSerializer),
+            400: openapi.Response('Ошибка валидации'),
+            404: openapi.Response('Инструмент не найден'),
+        },
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """Частичное обновление инструмента"""
+        return super().partial_update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Удаление инструмента по ID",
+        operation_summary="Удаление инструмента",
+        responses={
+            204: openapi.Response('Успешное удаление'),
+            404: openapi.Response('Инструмент не найден'),
+        },
+    )
+    def destroy(self, request, *args, **kwargs):
+        """Удалить инструмент"""
+        return super().destroy(request, *args, **kwargs)
+
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Получение аутентификационного токена для доступа к API",
+    operation_summary="Получение токена аутентификации",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['username', 'password'],
+        properties={
+            'username': openapi.Schema(
+                type=openapi.TYPE_STRING, description='Имя пользователя'
+            ),
+            'password': openapi.Schema(
+                type=openapi.TYPE_STRING, description='Пароль'
+            ),
+        },
+    ),
+    responses={
+        200: openapi.Response(
+            'Успешная аутентификация',
+            openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={'token': openapi.Schema(type=openapi.TYPE_STRING)},
+            ),
+        ),
+        400: openapi.Response('Ошибка валидации'),
+        401: openapi.Response('Неверные учетные данные'),
+    },
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def obtain_auth_token_csrf_exempt(request):

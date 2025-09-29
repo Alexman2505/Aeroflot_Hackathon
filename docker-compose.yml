@@ -40,34 +40,12 @@ services:
       retries: 5
 
 
-
-  # Сервис для выполнения миграций основного бэкенда
-  backend_migrations:
-    build: ./backend/
-    env_file: ./backend/.env
-    volumes:
-      - ./backend:/app
-    networks:
-      - app-network
-    depends_on:
-      db:
-        condition: service_healthy
-    command: >
-      sh -c "echo 'Ожидание базы данных...' &&
-          sleep 5 &&
-          echo 'Создание миграций для всех apps...' &&
-          python manage.py makemigrations users instruments thumbnail &&
-          echo 'Применение миграций основного бэкенда...' &&
-          python manage.py migrate &&
-          echo 'Миграции основного бэкенда успешно применены'"
-    profiles: ["migrate"]
-
   # Backend/AeroToolKit (запускаем на Gunicorn, а не стандартный manage.py)
   backend:
     build: ./backend/
     env_file: ./backend/.env
     ports:
-      - "8000:8000"  # Основной бэкенд
+      - "8000:8000"
     volumes:
       - ./backend:/app
     networks:
@@ -77,8 +55,8 @@ services:
         condition: service_healthy
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             gunicorn --workers 4 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
+            python manage.py collectstatic --noinput &&
+            gunicorn --workers 4 --timeout 120 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
 
 
   # Сервис для выполнения миграций photo server

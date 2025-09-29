@@ -8,8 +8,8 @@
       <div class="row">
         <aside class="col-12 col-md-3">
           <ul class="list-group list-group-flush">
-            <li class="list-group-item d-flex justify-content-between align-items-center">Дата и время обработки изображения: <span>{{ instrument.pub_date|date:"d.m.Y в H:i:s" }}</span></li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">Сотрудник: <span>{{ instrument.employee.get_full_name }}</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Дата обработки изображения: <span>{{ instrument.pub_date|date:"d.m.Y в H:i:s" }}</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Сотрудник: <span>{{ instrument.employee.username }}</span></li>
             <li class="list-group-item d-flex justify-content-between align-items-center">Количество записей:<span>{{ instrument.employee.instruments.count }}</span></li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
               <a href="{% url 'instruments:profile' instrument.employee.username %}">Все записи сотрудника</a>
@@ -45,13 +45,15 @@
             {% endif %}
           {% endwith %}
         </div>
-
-        <br>
         {{ instrument.text|linebreaksbr }}
-        {% if user.id == instrument.employee.id %}
-          <br>
-          <br>
-          <a class="btn btn-primary" href="{% url 'instruments:instrument_edit' instrument.id %}">редактировать запись</a>
+        <br>
+        <br>
+        {% if user == instrument.employee %}
+                <a class="btn"
+             style="background-color:rgb(17, 116, 34);
+                    color: white"
+             href="{% url 'instruments:instrument_edit' instrument.id %}">Редактировать запись</a>
+          <a class="btn btn-danger" href="{% url 'instruments:instrument_delete' instrument.id %}">Удалить запись</a>
         {% endif %}
       </article>
     </div>

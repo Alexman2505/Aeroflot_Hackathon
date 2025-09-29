@@ -275,16 +275,17 @@ def send_to_aerotoolkit_api(
     """
     Отправляет одно изображение на API AeroToolKit.
     """
+
     print(
-        f"Отправка данных: filename={filename}, expected_objects={expected_objects}"
+        f"Отправка данных: filename={filename}, expected_objects={int(expected_objects)}"
     )
     text = (
         f"Фотография автоматически загружена через систему фотофиксации.\n"
         f"Сотрудник, отправивший фотографию: {name}\n"
-        f"Локальное время отправки с сервера фотофиксации PhotoService: {timezone.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
+        f"Локальное время (сервера PhotoService) отправки изображения: {timezone.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
         f"Название файла: {filename if filename else 'не указано'}\n"
-        f"Ожидаемое количество объектов: {expected_objects if expected_objects else '11'}\n"
-        f"Ожидаемая уверенность распознавания: {expected_confidence if expected_confidence else '0.90'}"
+        f"Ожидаемое количество инструментов: {int(expected_objects)}\n"
+        f"Требуемая уверенность распознавания отдельного инструмента: {float(expected_confidence)}"
     )
 
     payload = {

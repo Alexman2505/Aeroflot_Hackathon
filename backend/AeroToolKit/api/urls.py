@@ -15,7 +15,7 @@ router = DefaultRouter()
 
 # Регистрация ViewSet'ов в маршрутизаторе
 router.register(r'tools', ToolViewSet, basename='tool')
-router.register(r'instruments', InstrumentViewSet, basename='instrument')
+router.register(r'instruments', InstrumentViewSet, basename='instruments')
 
 # Конфигурация схемы OpenAPI для автоматической генерации документации
 schema_view = get_schema_view(
