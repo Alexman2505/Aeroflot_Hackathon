@@ -1,4 +1,3 @@
-import base64
 import uuid
 from rest_framework import serializers
 from django.core.files.base import ContentFile
@@ -9,9 +8,6 @@ from .yolo_utils import run_yolo_inference
 class InstrumentSerializer(serializers.ModelSerializer):
     """
     Сериализатор для чтения и отображения инструментов.
-
-    Предоставляет полную информацию об инструменте включая URL изображения
-    и имя сотрудника в читаемом формате.
     """
 
     employee_username = serializers.CharField(
@@ -36,15 +32,6 @@ class InstrumentSerializer(serializers.ModelSerializer):
         read_only_fields = ['employee', 'pub_date']
 
     def get_image_url(self, obj):
-        """
-        Генерирует полный URL для изображения инструмента.
-
-        Args:
-            obj: Объект Instrument
-
-        Returns:
-            str: Абсолютный URL изображения или None если изображение отсутствует
-        """
         if obj.image and hasattr(obj.image, 'url'):
             request = self.context.get('request')
             if request:
@@ -56,13 +43,12 @@ class InstrumentSerializer(serializers.ModelSerializer):
 class InstrumentCreateSerializer(serializers.ModelSerializer):
     """
     Сериализатор для создания инструментов с обработкой изображений через YOLO.
-
-    Обрабатывает base64 изображения, выполняет детекцию объектов через YOLO модель
-    и сохраняет аннотированное изображение вместе с результатами анализа.
+    Теперь принимает бинарные файлы вместо base64.
     """
 
-    full_base64_string = serializers.CharField(write_only=True, required=True)
-    image = serializers.ImageField(read_only=True)
+    image = serializers.ImageField(
+        write_only=True, required=True, help_text="Бинарный файл изображения"
+    )
     filename = serializers.CharField(write_only=True, required=False)
     expected_objects = serializers.IntegerField(write_only=True, required=True)
     expected_confidence = serializers.FloatField(
@@ -76,13 +62,12 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
             'text',
             'pub_date',
             'employee',
-            'image',
-            'full_base64_string',
+            'image',  # Теперь write_only для приема файлов
             'filename',
             'expected_objects',
             'expected_confidence',
         ]
-        read_only_fields = ['employee', 'pub_date', 'image']
+        read_only_fields = ['employee', 'pub_date']
 
     def validate(self, attrs):
         """
@@ -95,14 +80,14 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
         if not text:
             errors['text'] = 'Текст обязателен'
 
-        # Проверка base64 строки
-        full_base64_string = attrs.get('full_base64_string', '')
-        if not full_base64_string:
-            errors['full_base64_string'] = (
-                'Изображение в формате base64 обязательно'
-            )
-        elif not full_base64_string.startswith('data:image/'):
-            errors['full_base64_string'] = 'Неверный формат base64'
+        # Проверка изображения
+        image = attrs.get('image')
+        if not image:
+            errors['image'] = 'Изображение обязательно'
+        elif not hasattr(
+            image, 'content_type'
+        ) or not image.content_type.startswith('image/'):
+            errors['image'] = 'Файл должен быть изображением'
 
         # Проверка expected_objects
         expected_objects = attrs.get('expected_objects')
@@ -134,25 +119,19 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """
         Создает новый инструмент с обработкой изображения через YOLO.
+        Теперь работает с бинарным файлом вместо base64.
         """
         try:
-            # Извлекаем поля, которые не являются полями модели
-            full_base64_string = validated_data.pop("full_base64_string")
+            # Извлекаем бинарный файл изображения
+            image_file = validated_data.pop("image")
 
             # Извлекаем дополнительные параметры
             filename = validated_data.pop("filename", None)
             expected_objects = validated_data.pop("expected_objects", None)
             expected_confidence = validated_data.pop("expected_confidence")
 
-            # Декодируем base64 изображение
-            base64_data = full_base64_string.split(",", 1)[1]
-
-            try:
-                image_data = base64.b64decode(base64_data)
-            except Exception as e:
-                raise serializers.ValidationError(
-                    {"full_base64_string": f"Ошибка base64: {str(e)}"}
-                )
+            # Читаем данные изображения
+            image_data = image_file.read()
 
             # Устанавливаем текущего пользователя как сотрудника
             request = self.context.get("request")
@@ -178,24 +157,25 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
 
             # Формируем итоговый текст с информацией о файле и результатами YOLO
             original_text = validated_data.get("text", "")
-
-            # Добавляем результаты YOLO анализа
             validated_data["text"] = self.add_yolo_results_to_text(
                 original_text, yolo_results
             )
 
             # Создаем имя файла для сохранения изображения
-            image_format = full_base64_string.split(";")[0].split("/")[1]
+            original_name = image_file.name
+            image_format = (
+                original_name.split('.')[-1] if '.' in original_name else 'jpg'
+            )
             save_filename = f"instrument_{uuid.uuid4().hex[:8]}.{image_format}"
 
             # Создаем и сохраняем инструмент
             instrument = Instrument(**validated_data)
 
             # Сохраняем дополнительные поля модели
-            instrument.filename = filename
+            instrument.filename = filename or original_name
             instrument.expected_objects = expected_objects or 11
 
-            # Сохраняем изображение
+            # Сохраняем обработанное изображение
             instrument.image.save(
                 save_filename, ContentFile(processed_image_bytes)
             )
@@ -203,6 +183,7 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
             return instrument
 
         except Exception as e:
+            print(f"Ошибка создания инструмента: {str(e)}")
             raise
 
     def add_yolo_results_to_text(self, original_text, yolo_results):
@@ -223,7 +204,6 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
                 + "\n".join(detected_items)
             )
 
-        # Объединяем исходный текст с результатами YOLO
         if original_text.strip():
             result = f"{original_text}\n\n{yolo_section}"
         else:

@@ -97,38 +97,26 @@ def handle_auth_step(request, context):
 def handle_image_upload(request, context):
     """
     Обрабатывает загрузку и отправку изображений на внешний API.
+    Теперь использует бинарную передачу вместо base64.
     """
     token = request.POST.get('api_token', '').strip()
     name = request.session.get('sender_name', '')
-    image_files = request.FILES.getlist('images')
+    image_files = request.FILES.getlist('images')  # Бинарные файлы
     expected_objects = request.POST.get('expected_objects', '11')
     expected_confidence = request.POST.get('expected_confidence', '0.90')
 
     if token and name and image_files:
-        success_count = 0  # файл успешно доставлен
-        delivery_failed_count = 0  # Файл не доставлен, фотосервер глючит
-        rejected_count = 0  # Файл доставлен, но отвергнут (4xx)
-        server_error_count = 0  # Файл доставлен, но сервер упал (5xx)
+        success_count = 0
+        delivery_failed_count = 0
+        rejected_count = 0
+        server_error_count = 0
 
         for image_file in image_files:
-            # Кодируем каждое изображение в base64
-            image_data = image_file.read()
-            base64_string = base64.b64encode(image_data).decode('utf-8')
-            image_format = (
-                image_file.name.split('.')[-1]
-                if '.' in image_file.name
-                else 'jpeg'
-            )
-            full_base64_string = (
-                f"data:image/{image_format};base64,{base64_string}"
-            )
-
-            # Отправляем на внешний API
-            result = send_to_aerotoolkit_api(
+            # ОТПРАВКА БИНАРНОГО ФАЙЛА
+            result = send_to_aerotoolkit_api_binary(
                 name=name,
-                full_base64_string=full_base64_string,
+                image_file=image_file,  # Передаем файл напрямую
                 token=token,
-                filename=image_file.name,
                 expected_objects=expected_objects,
                 expected_confidence=expected_confidence,
             )
@@ -139,7 +127,7 @@ def handle_image_upload(request, context):
                 rejected_count += 1
             elif result == "delivered_but_server_error":
                 server_error_count += 1
-            else:  # delivery_failed
+            else:
                 delivery_failed_count += 1
 
         context.update(
@@ -243,46 +231,48 @@ def get_auth_token(username, password, auth_url=None):
         return None
 
 
-def send_to_aerotoolkit_api(
+def send_to_aerotoolkit_api_binary(
     name,
-    full_base64_string,
+    image_file,
     token,
-    filename=None,
     expected_objects=None,
     expected_confidence=None,
 ):
     """
-    Отправляет одно изображение на API AeroToolKit.
+    Отправляет бинарный файл на API AeroToolKit.
     """
     text = (
         f"Фотография автоматически загружена через систему фотофиксации.\n"
-        f"Сотрудник, отправивший фотографию: {name}\n"
-        f"Локальное время (сервера PhotoService) отправки изображения: {timezone.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
-        f"Название файла: {filename if filename else 'не указано'}\n"
-        f"Ожидаемое количество инструментов: {int(expected_objects)}\n"
-        f"Требуемая уверенность распознавания отдельного инструмента: {float(expected_confidence)}"
+        f"Сотрудник: {name}\n"
+        f"Время отправки: {timezone.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
+        f"Файл: {image_file.name}\n"
+        f"Ожидаемое количество: {int(expected_objects)}\n"
+        f"Уверенность: {float(expected_confidence)}"
     )
 
-    payload = {
-        "text": text,
-        "full_base64_string": full_base64_string,
-        "filename": filename,
-        "expected_objects": expected_objects,
-        "expected_confidence": expected_confidence,
+    # Подготавливаем multipart/form-data
+    files = {'image': (image_file.name, image_file.file, 'image/jpeg')}
+
+    data = {
+        'text': text,
+        'expected_objects': expected_objects,
+        'expected_confidence': expected_confidence,
+        'filename': image_file.name,
     }
 
     headers = {
-        'Content-Type': 'application/json',
         'Authorization': f'Token {token}',
     }
 
     try:
         response = requests.post(
             settings.AEROTOOLKIT_API_URL,
-            json=payload,
+            files=files,
+            data=data,
             headers=headers,
             timeout=30,
         )
+
         if response.status_code in [200, 201]:
             return "success"
         elif 400 <= response.status_code < 500:
@@ -293,5 +283,5 @@ def send_to_aerotoolkit_api(
             return "delivery_failed"
 
     except requests.exceptions.RequestException as e:
-        print(f"Ошибка подключения (файл не доставлен): {e}")
+        print(f"Ошибка подключения: {e}")
         return "delivery_failed"

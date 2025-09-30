@@ -16,7 +16,6 @@ from .serializers import InstrumentSerializer, InstrumentCreateSerializer
 class ToolViewSet(viewsets.ViewSet):
     """
     Вьюсет для проверки работоспособности API.
-
     Предоставляет простой endpoint для проверки доступности API сервиса.
     """
 
@@ -38,7 +37,6 @@ class ToolViewSet(viewsets.ViewSet):
     def list(self, request):
         """
         Возвращает простое сообщение о работоспособности API.
-
         Returns:
             Response: JSON ответ с сообщением о статусе API
         """
@@ -119,12 +117,13 @@ class InstrumentViewSet(viewsets.ModelViewSet):
         return super().get_queryset().select_related('employee')
 
     @swagger_auto_schema(
-        operation_description="Создание инструмента с обязательной загрузкой изображения в base64",
+        operation_description="Создание инструмента с загрузкой бинарного изображения",
+        operation_summary="Создание инструмента",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             required=[
                 'text',
-                'full_base64_string',
+                'image',
                 'expected_objects',
                 'expected_confidence',
             ],
@@ -134,10 +133,9 @@ class InstrumentViewSet(viewsets.ModelViewSet):
                     description="Описание инструмента (обязательно)",
                     example="Фотография набора инструментов",
                 ),
-                'full_base64_string': openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    description="Изображение в формате base64 (обязательно)",
-                    example="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA...",
+                'image': openapi.Schema(
+                    type=openapi.TYPE_FILE,
+                    description="Бинарный файл изображения (обязательно)",
                 ),
                 'filename': openapi.Schema(
                     type=openapi.TYPE_STRING,
