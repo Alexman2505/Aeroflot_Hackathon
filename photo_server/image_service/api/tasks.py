@@ -75,18 +75,15 @@ def send_single_image(temp_file_path, token, user_data):
 @shared_task
 def process_image_batch(file_paths, token, user_data):
     """
-    Обрабатывает пачку изображений и возвращает результаты.
+    Обрабатывает пачку изображений БЕЗ блокировки.
     """
-    results = []
-
     # Запускаем задачи для каждого файла
     for file_path in file_paths:
-        result = send_single_image.delay(file_path, token, user_data)
-        results.append(result)
+        send_single_image.delay(file_path, token, user_data)
 
-    # Ждем завершения всех задач (можно убрать для полной асинхронности)
-    completed_results = []
-    for result in results:
-        completed_results.append(result.get(timeout=30))
-
-    return completed_results
+    # Возвращаем только информацию о запуске, не ждем результаты
+    return {
+        'status': 'started',
+        'files_count': len(file_paths),
+        'message': 'Files are being processed in background',
+    }
