@@ -166,11 +166,6 @@
                                 <span class="status-count status-failed">{{ delivery_failed_count }}</span>
                             </div>
                             {% endif %}
-                            <!-- Общее количество -->
-                            <div class="status-item" style="border-top: 2px solid #ccc; margin-top: 10px; padding-top: 10px;">
-                                <span class="status-label"><strong>Всего обработано изображений:</strong></span>
-                                <span class="status-count" style="background: #2c3e50;">{{ images_count }}</span>
-                            </div>
                         </div>
                         <!-- Детальная информация по статусам -->
                         {% if rejected_count > 0 %}
@@ -197,18 +192,6 @@
                         </div>
                         {% endif %}
                 <!-- Предпросмотр изображения -->
-                {% if first_image %}
-                <div style="margin-top: 20px;">
-                    <h3>Пример отправленного изображения</h3>
-                    <img src="{{ first_image.full_base64_string }}" alt="Preview" class="preview-image">
-                    <p><strong>Файл:</strong> {{ first_image.filename }}</p>
-                    <p><strong>Размер:</strong> {{ first_image.size }} байт</p>
-                    <div style="margin-top: 15px;">
-                        <label><strong>Строка изображения в кодировке Base64 (первые 200 символов)</strong></label>
-                        <textarea class="base64-textarea" readonly>{{ first_image.full_base64_string|slice:":200" }}...</textarea>
-                    </div>
-                </div>
-                {% endif %}
                 <div style="text-align: center; margin-top: 20px;">
                     <a href="{% url 'clear_session' %}" class="submit-btn" style="display: inline-block; width: auto; padding: 10px 20px; text-decoration: none;">
                         Отправить еще изображения

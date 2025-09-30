@@ -105,8 +105,7 @@ def handle_image_upload(request, context):
     expected_confidence = request.POST.get('expected_confidence', '0.90')
 
     if token and name and image_files:
-        processed_images = []
-        success_count = 0
+        success_count = 0  # файл успешно доставлен
         delivery_failed_count = 0  # Файл не доставлен, фотосервер глючит
         rejected_count = 0  # Файл доставлен, но отвергнут (4xx)
         server_error_count = 0  # Файл доставлен, но сервер упал (5xx)
@@ -143,35 +142,15 @@ def handle_image_upload(request, context):
             else:  # delivery_failed
                 delivery_failed_count += 1
 
-            processed_images.append(
-                {
-                    'filename': image_file.name,
-                    'full_base64_string': full_base64_string,
-                    'base64_string': base64_string,
-                    'format': image_format,
-                    'size': len(image_data),
-                    'expected_objects': expected_objects,
-                    'expected_confidence': expected_confidence,
-                }
-            )
-
-        # Берем первое изображение для отображения на сайте
-        first_image = processed_images[0] if processed_images else None
-
         context.update(
             {
                 'step': 'results',
                 'submitted': True,
                 'sender_name': name,
-                'images_count': len(processed_images),
                 'success_count': success_count,
                 'delivery_failed_count': delivery_failed_count,
                 'rejected_count': rejected_count,
                 'server_error_count': server_error_count,
-                'first_image': first_image,
-                'full_base64_string': (
-                    first_image['full_base64_string'] if first_image else ''
-                ),
                 'expected_objects': expected_objects,
                 'expected_confidence': expected_confidence,
             }
@@ -275,10 +254,6 @@ def send_to_aerotoolkit_api(
     """
     Отправляет одно изображение на API AeroToolKit.
     """
-
-    print(
-        f"Отправка данных: filename={filename}, expected_objects={int(expected_objects)}"
-    )
     text = (
         f"Фотография автоматически загружена через систему фотофиксации.\n"
         f"Сотрудник, отправивший фотографию: {name}\n"
@@ -308,28 +283,13 @@ def send_to_aerotoolkit_api(
             headers=headers,
             timeout=30,
         )
-
-        print(f"Статус ответа: {response.status_code}")
-        print(f"Текст ответа: {response.text}")
-
         if response.status_code in [200, 201]:
-            print("Изображение успешно отправлено и распознано")
             return "success"
-
         elif 400 <= response.status_code < 500:
-            print(
-                f"Файл доставлен, но сервер отверг запрос: {response.status_code}"
-            )
             return "delivered_but_rejected"
-
         elif response.status_code >= 500:
-            print(
-                f"Файл доставлен, но серверная ошибка: {response.status_code}"
-            )
             return "delivered_but_server_error"
-
         else:
-            print(f"Неожиданный статус: {response.status_code}")
             return "delivery_failed"
 
     except requests.exceptions.RequestException as e:
