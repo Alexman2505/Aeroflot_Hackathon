@@ -248,8 +248,8 @@ EXPECTED_OBJECTS = 11
 # Заглушка, заменяется переменной при отправке с фото сервера. Уверенность, что инструмент распознан правильно
 EXPECTED_CONFIDENCE = 0.90
 # Чтобы джанга не лагала при загрузке больших файлов.
-DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 50MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 50MB
 MIGRATION_MODULES = {
     'users': 'users.migrations',  # Миграции users в users/migrations/
     'instruments': 'instruments.migrations',  # Миграции instruments в instruments/migrations/

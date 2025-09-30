@@ -172,6 +172,10 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Europe/Moscow'
 CELERY_ENABLE_UTC = False
 
+# чтобы джанга не лагала при загрузке файлов
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+
 # Создаем временную папку для загрузок
 TEMP_UPLOAD_DIR = os.path.join(MEDIA_ROOT, 'temp_uploads')
 os.makedirs(TEMP_UPLOAD_DIR, exist_ok=True)

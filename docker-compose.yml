@@ -120,4 +120,4 @@ services:
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск фото сервера...' &&
-             gunicorn --workers 2 --bind 0.0.0.0:8000 image_service.wsgi:application"
+             gunicorn --workers 2 --timeout 120 --bind 0.0.0.0:8000 image_service.wsgi:application"
