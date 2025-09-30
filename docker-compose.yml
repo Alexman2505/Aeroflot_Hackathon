@@ -49,8 +49,10 @@ services:
     command: >
       sh -c "echo 'Ожидание базы данных...' &&
              sleep 15 &&
-             echo 'Создание миграций...' &&
-             python manage.py makemigrations --noinput || echo 'Миграции уже существуют' &&
+             echo 'Принудительное создание миграций...' &&
+             python manage.py makemigrations users --noinput &&
+             python manage.py makemigrations instruments --noinput &&
+             python manage.py makemigrations --noinput &&
              echo 'Применение миграций...' &&
              python manage.py migrate &&
              echo 'Сбор статики...' &&
@@ -74,7 +76,7 @@ services:
       sh -c "echo 'Ожидание основного бэкенда...' &&
              sleep 25 &&
              echo 'Создание миграций...' &&
-             python manage.py makemigrations --noinput || echo 'Миграции уже существуют' &&
+             python manage.py makemigrations --noinput &&
              echo 'Применение миграций...' &&
              python manage.py migrate &&
              echo 'Сбор статики...' &&
