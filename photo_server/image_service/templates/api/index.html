@@ -101,8 +101,6 @@
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="api_token" value="{{ token }}">
-
-                    {% comment %} количество предметов {% endcomment %}
                     <div class="form-group">
                         <label for="expected_objects">Введите ожидаемое количество сдаваемых сотрудником инструментов</label>
                         <input type="number" id="expected_objects" name="expected_objects"
@@ -110,8 +108,6 @@
                             placeholder="Сколько предметов ожидаете увидеть на фото">
                         <small style="color: #666;">"По умолчанию" ml-модель может определить <strong>до 11 РАЗНЫХ</strong> предметов на одной фотографии</small>
                     </div>
-
-                    {% comment %} количество предметов {% endcomment %}
                     <div class="form-group">
                         <label for="expected_confidence">Введите "Уровень уверенности" распознования каждого отдельного инструмента на фотографии*</label>
                         <input type="number" id="expected_confidence" name="expected_confidence"
@@ -119,22 +115,17 @@
                             placeholder="Точность распознования модели">
                         <small style="color: #666;">"Уровень уверенности" - это вероятность правильного распознавания каждого отдельного инструмента на фотографии</small>
                     </div>
-
                     <div class="form-group">
                         <label for="images">Выберите изображения (можно сразу несколько) *</label>
                         <input type="file" id="images" name="images" accept="image/*" multiple required>
                     </div>
-
                     <button type="submit" class="submit-btn">Отправить изображения</button>
                 </form>
-
                 <a href="{% url 'clear_session' %}" class="submit-btn btn-warning" style="text-decoration: none; display: inline-block; text-align: center;">
                     Выйти и авторизоваться заново
                 </a>
             </div>
             {% endif %}
-
-            <!-- Шаг 3: Результаты -->
             {% if step == 'results' %}
             <div class="section">
                 <h2>Результаты отправки</h2>
@@ -143,12 +134,10 @@
                                 <span class="status-label">Ожидаемое количество объектов:</span>
                                 <span class="status-count status-delivered">{{ expected_objects }}</span>
                             </div>
-
                             <div class="status-item">
                                 <span class="status-label">Ожидаемая уверенность распознавания:</span>
                                 <span class="status-count status-delivered">{{ expected_confidence }}</span>
                             </div>
-
                             <!-- Успешно отправленные и распознанные -->
                             {% if success_count > 0 %}
                             <div class="status-item">
@@ -156,7 +145,6 @@
                                 <span class="status-count status-success">{{ success_count }}</span>
                             </div>
                             {% endif %}
-
                             <!-- Файл доставлен, но сервер отверг (4xx) -->
                             {% if rejected_count > 0 %}
                             <div class="status-item">
@@ -164,7 +152,6 @@
                                 <span class="status-count status-delivered">{{ rejected_count }}</span>
                             </div>
                             {% endif %}
-
                             <!-- Файл доставлен, но сервер упал (5xx) -->
                             {% if server_error_count > 0 %}
                             <div class="status-item">
@@ -172,7 +159,6 @@
                                 <span class="status-count status-delivered">{{ server_error_count }}</span>
                             </div>
                             {% endif %}
-
                             <!-- Файл не доставлен -->
                             {% if delivery_failed_count > 0 %}
                             <div class="status-item">
@@ -180,14 +166,12 @@
                                 <span class="status-count status-failed">{{ delivery_failed_count }}</span>
                             </div>
                             {% endif %}
-
                             <!-- Общее количество -->
                             <div class="status-item" style="border-top: 2px solid #ccc; margin-top: 10px; padding-top: 10px;">
                                 <span class="status-label"><strong>Всего обработано изображений:</strong></span>
                                 <span class="status-count" style="background: #2c3e50;">{{ images_count }}</span>
                             </div>
                         </div>
-
                         <!-- Детальная информация по статусам -->
                         {% if rejected_count > 0 %}
                         <div class="warning-message">
@@ -195,27 +179,23 @@
                             Возможные причины: неверный токен авторизации, невалидные данные, недостаточно прав.
                         </div>
                         {% endif %}
-
                         {% if server_error_count > 0 %}
                         <div class="warning-message">
                             <strong>Внимание:</strong> Файлы были доставлены на сервер AeroToolKit, но сервер вернул ошибку (5xx).
                             Это внутренняя ошибка сервера AeroToolKit. Попробуйте отправить позже.
                         </div>
                         {% endif %}
-
                         {% if delivery_failed_count > 0 %}
                         <div class="error-message">
                             <strong>Ошибка:</strong> Файлы не были доставлены на сервер.
                             Проверьте подключение к интернету и настройки сети.
                         </div>
                         {% endif %}
-
                         {% if success_count == images_count %}
                         <div class="success-message">
                             <strong>Успех!</strong> Все изображения успешно отправлены и обработаны сервером AeroToolKit.
                         </div>
                         {% endif %}
-
                 <!-- Предпросмотр изображения -->
                 {% if first_image %}
                 <div style="margin-top: 20px;">
@@ -223,14 +203,12 @@
                     <img src="{{ first_image.full_base64_string }}" alt="Preview" class="preview-image">
                     <p><strong>Файл:</strong> {{ first_image.filename }}</p>
                     <p><strong>Размер:</strong> {{ first_image.size }} байт</p>
-
                     <div style="margin-top: 15px;">
                         <label><strong>Строка изображения в кодировке Base64 (первые 200 символов)</strong></label>
                         <textarea class="base64-textarea" readonly>{{ first_image.full_base64_string|slice:":200" }}...</textarea>
                     </div>
                 </div>
                 {% endif %}
-
                 <div style="text-align: center; margin-top: 20px;">
                     <a href="{% url 'clear_session' %}" class="submit-btn" style="display: inline-block; width: auto; padding: 10px 20px; text-decoration: none;">
                         Отправить еще изображения

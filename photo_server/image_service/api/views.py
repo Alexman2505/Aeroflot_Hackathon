@@ -38,7 +38,7 @@ def index(request):
 
 def check_step(request, context):
     """
-    Анализирует POST-запрос и определяет текущий шаг workflow.
+    Анализирует POST-запрос и определяет текущий шаг.
 
     Проверяет наличие ключевых параметров в запросе чтобы определить:
     - Авторизация (наличие username и password)
@@ -107,9 +107,9 @@ def handle_image_upload(request, context):
     if token and name and image_files:
         processed_images = []
         success_count = 0
-        delivery_failed_count = 0  # Файл не доставлен
+        delivery_failed_count = 0  # Файл не доставлен, фотосервер глючит
         rejected_count = 0  # Файл доставлен, но отвергнут (4xx)
-        server_error_count = 0  # Файл доставлен, сервер упал (5xx)
+        server_error_count = 0  # Файл доставлен, но сервер упал (5xx)
 
         for image_file in image_files:
             # Кодируем каждое изображение в base64

@@ -22,6 +22,7 @@ class InstrumentAdmin(admin.ModelAdmin):
         'pub_date',
         'employee',
         'expected_objects',
+        'expected_confidence',
         'filename',
     )
 
@@ -29,11 +30,13 @@ class InstrumentAdmin(admin.ModelAdmin):
         'text',
         'employee__username',
         'filename',
+        'expected_objects',
     )
 
     list_filter = (
         'pub_date',
         'expected_objects',
+        'expected_confidence',
         'employee',
     )
 
@@ -44,16 +47,17 @@ class InstrumentAdmin(admin.ModelAdmin):
         (
             'Параметры распознавания',
             {
-                'fields': ('expected_objects',),
+                'fields': ('expected_objects', 'expected_confidence'),
                 'description': 'Настройки связанные с анализом изображения через YOLO',
             },
         ),
     )
 
-    # Поля только для чтения
-    readonly_fields = ('pub_date',)
-
+    readonly_fields = ('pub_date',)  # Поля только для чтения
     empty_value_display = '-пусто-'
+    list_per_page = 20  # Количество записей на странице
+    list_max_show_all = 100  # Максимальное количество для показа всех
+    show_full_result_count = True  # Показывать общее количество
 
 
 admin.site.register(Instrument, InstrumentAdmin)

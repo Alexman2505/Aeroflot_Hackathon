@@ -4,7 +4,6 @@ from rest_framework import serializers
 from django.core.files.base import ContentFile
 from instruments.models import Instrument
 from .yolo_utils import run_yolo_inference
-from django.conf import settings
 
 
 class InstrumentSerializer(serializers.ModelSerializer):
@@ -144,9 +143,6 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
             filename = validated_data.pop("filename", None)
             expected_objects = validated_data.pop("expected_objects", None)
             expected_confidence = validated_data.pop("expected_confidence")
-            # expected_confidence = validated_data.pop(
-            #     "expected_confidence", settings.EXPECTED_CONFIDENCE
-            # )
 
             # Декодируем base64 изображение
             base64_data = full_base64_string.split(",", 1)[1]

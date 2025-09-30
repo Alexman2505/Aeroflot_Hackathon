@@ -18,7 +18,6 @@
           {% endif %}
         </div>
         <div class="card-body">
-          {# Этот блок будет показан, если в форме есть ошибки #}
           {% load user_filters %}
           {% if form.errors %}
             {% for field in form %}

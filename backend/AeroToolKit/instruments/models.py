@@ -42,6 +42,8 @@ class Instrument(models.Model):
         help_text="Количество предметов, которые должны быть распознаны на изображении",
         default=11,
         blank=True,
+        db_index=True,
+        validators=[MinValueValidator(1)],
     )
 
     expected_confidence = models.FloatField(
@@ -49,6 +51,7 @@ class Instrument(models.Model):
         help_text="Минимальный уровень уверенности для детекции объектов (от 0 до 1)",
         default=0.9,
         validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        db_index=True,
     )
 
     filename = models.CharField(

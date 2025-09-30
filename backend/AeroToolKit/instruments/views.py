@@ -1,6 +1,5 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
-
 from .models import Instrument, User
 from .forms import InstrumentForm
 from .utils import make_page

@@ -66,13 +66,28 @@ class InstrumentViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     # Фильтрация, поиск, сортировка
-    filterset_fields = ['employee', 'pub_date', 'expected_objects']
-    search_fields = ['text', 'employee__username', 'filename']
-    ordering_fields = [
-        'pub_date',
-        'id',
+    filterset_fields = [
+        'employee',
         'employee__username',
+        'pub_date',
+        'filename',
         'expected_objects',
+        'expected_confidence',
+    ]
+    search_fields = [
+        'text',
+        'employee__username',
+        'pub_date',
+        'expected_objects',
+        'expected_confidence',
+    ]
+    ordering_fields = [
+        'id',
+        'text',
+        'employee__username',
+        'pub_date',
+        'expected_objects',
+        'expected_confidence',
     ]
     ordering = ['-pub_date']
 
