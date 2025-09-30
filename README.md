@@ -95,48 +95,48 @@ docker-compose up --build -d
 
 ```bash
 Aeroflot_Hackathon/
-├── backend/                                      # Основной сервис AeroToolKit
-│   ├── AeroToolKit/                              # Корневая папка проекта Django
-│   │   ├── AeroToolKit/                          # Папка с настройками проекта
-│   │   │   ├── settings.py                       # Настройки Django
-│   │   │   ├── urls.py                           # Маршрутизатор ссылок
-│   │   │   └── wsgi.py                           # WSGI конфигурация Django проекта (Web Server Gateway Interface)
-│   │   ├── instruments/                          # Приложение для работы с инструментами
-│   │   │   ├── models.py                         # Модели Instrument
-│   │   │   ├── views.py                          # Веб-представления
-│   │   │   └── urls.py                           # Маршрутизатор ссылок
-│   │   ├── templates/                            # HTML шаблоны
-│   │   ├── api/                                  # REST API приложение
-│   │   │   ├── views.py                          # ViewSets для инструментов
-│   │   │   ├── serializers.py                    # Сериализаторы
-│   │   │   ├── urls.py                           # Маршрутизатор ссылок
-│   │   │   └── yolo_utils.py                     # Утилиты для работы с YOLO моделью
-│   │   ├── users/                                # Приложение пользователей
-│   │   │   ├── models.py                         # Модели пользователей
-│   │   │   └── urls.py                           # Маршрутизатор ссылок
-│   │   ├── manage.py                             # Главный исполнительный файл
-│   │   ├── requirements.txt                      # Список используемых библиотек
-│   │   └── .env                                  # Переменные окружения
-├── photo_server/                                 # Сервис загрузки изображений
-│   ├── image_service/                            # Корневая папка проекта Django
-│   │   ├── settings.py                           # Настройки Django
-│   │   ├── urls.py                               # Маршрутизатор ссылок
-│   │   └── wsgi.py                               # WSGI конфигурация Django проекта (Web Server Gateway Interface)
-│   ├── api/                                      # API приложение
-│   │   ├── views.py                              # Логика загрузки и отправки
-│   │   ├── urls.py                               # Маршрутизатор ссылок
-│   │   └── templates/                            # HTML шаблоны
-│   ├── manage.py                                 # Главный исполнительный файл
-│   ├── requirements.txt                          # Список используемых библиотек
-│   └── .env                                      # Переменные окружения
-├── dev_ml/                                       # Модуль машинного обучения
-│   ├── datasets/                                 # Датасеты для обучения
+├── backend/                          # Основной сервис AeroToolKit
+│   ├── AeroToolKit/                  # Корневая папка проекта Django
+│   │   ├── AeroToolKit/              # Папка с настройками проекта
+│   │   │   ├── settings.py           # Настройки Django
+│   │   │   ├── urls.py               # Маршрутизатор ссылок
+│   │   │   └── wsgi.py               # WSGI конфигурация Django проекта (Web Server Gateway Interface)
+│   │   ├── instruments/              # Приложение для работы с инструментами
+│   │   │   ├── models.py             # Модели Instrument
+│   │   │   ├── views.py              # Веб-представления
+│   │   │   └── urls.py               # Маршрутизатор ссылок
+│   │   ├── templates/                # HTML шаблоны
+│   │   ├── api/                      # REST API приложение
+│   │   │   ├── views.py              # ViewSets для инструментов
+│   │   │   ├── serializers.py        # Сериализаторы
+│   │   │   ├── urls.py               # Маршрутизатор ссылок
+│   │   │   └── yolo_utils.py         # Утилиты для работы с YOLO моделью
+│   │   ├── users/                    # Приложение пользователей
+│   │   │   ├── models.py             # Модели пользователей
+│   │   │   └── urls.py               # Маршрутизатор ссылок
+│   │   ├── manage.py                 # Главный исполнительный файл
+│   │   ├── requirements.txt          # Список используемых библиотек
+│   │   └── .env                      # Переменные окружения
+├── photo_server/                     # Сервис загрузки изображений
+│   ├── image_service/                # Корневая папка проекта Django
+│   │   ├── settings.py               # Настройки Django
+│   │   ├── urls.py                   # Маршрутизатор ссылок
+│   │   └── wsgi.py                   # WSGI конфигурация Django проекта (Web Server Gateway Interface)
+│   ├── api/                          # API приложение
+│   │   ├── views.py                  # Логика загрузки и отправки
+│   │   ├── urls.py                   # Маршрутизатор ссылок
+│   │   └── templates/                # HTML шаблоны
+│   ├── manage.py                     # Главный исполнительный файл
+│   ├── requirements.txt              # Список используемых библиотек
+│   └── .env                          # Переменные окружения
+├── dev_ml/                           # Модуль машинного обучения
+│   ├── datasets/                     # Датасеты для обучения
 │   │   └── data.yaml
-│   ├── models/                                   # Обученные модели
+│   ├── models/                       # Обученные модели
 │   │   └── yolo_best.pt
-│   └── train_yolo.py                             # Обучение YOLO модели
-├── docker-compose.yml                            # Конфигурация Docker
-├── .gitignore                                    # Игнорируемые гитхабом файлы при публикации
+│   └── train_yolo.py                 # Обучение YOLO модели
+├── docker-compose.yml                # Конфигурация Docker
+├── .gitignore                        # Игнорируемые гитхабом файлы при публикации
 └── README.md
 ```
 
