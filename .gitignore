@@ -230,9 +230,6 @@ photo-server.tar
 !/media/.gitkeep
 media/
 *.bak
-*/static/
-/static/*
-static/
 */staticfiles/
 /staticfiles/*
 staticfiles/
