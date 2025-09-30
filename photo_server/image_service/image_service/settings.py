@@ -159,12 +159,12 @@ SESSION_COOKIE_NAME = 'photo_service_sessionid'
 CSRF_COOKIE_NAME = 'photo_service_csrf'
 LANGUAGE_COOKIE_NAME = 'photo_service_language'
 
-# Убедитесь что сессии изолированы
+# изоляция сессий
 SESSION_COOKIE_PATH = '/'
 SESSION_COOKIE_DOMAIN = None  # Не делить cookies с AeroToolKit
 
 # Настройки Celery
-CELERY_BROKER_URL = 'redis://redis:6379/0'  # или ваши креды Redis
+CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
