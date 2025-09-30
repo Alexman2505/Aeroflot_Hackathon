@@ -136,6 +136,6 @@ Aeroflot_Hackathon/
 │   │   └── yolo_best.pt
 │   └── train_yolo.py                 # Обучение YOLO модели
 ├── docker-compose.yml                # Конфигурация Docker
-├── .gitignore                        # Игнорируемые гитхабом файлы при публикации
+├── .gitignore                        # Игнорируемые гитхабом файлы при публикации.
 └── README.md
 ```
