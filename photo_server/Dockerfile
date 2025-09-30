@@ -1,4 +1,4 @@
-#Сервис на питоне 3.10 работает
+# Сервис на питоне 3.10 работает
 FROM python:3.10
 
 WORKDIR /app
@@ -15,6 +15,9 @@ COPY . .
 
 # Создаем папки для статики и медиа
 RUN mkdir -p staticfiles media
+
+# Создаем папку для временных загрузок
+RUN mkdir -p media/temp_uploads
 
 EXPOSE 8000
 

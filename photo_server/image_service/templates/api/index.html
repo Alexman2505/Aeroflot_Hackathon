@@ -84,20 +84,16 @@
             <div class="section">
                 <h2>Загрузка изображений</h2>
                 <p>Вы аутентифицированы (авторизованы по вашему токену) как: <strong>{{ username }}</strong></p>
-
                 <div class="token-display">
                     <strong>Токен пользователя успешно получен от сервера AeroToolKit и вставлен в JSON объект в формате:</strong>
                     <p><strong>Token {{ token }}</strong></p>
                 </div>
-
                 <br>
-
                 {% if error %}
                 <div class="error-message">
                     {{ error }}
                 </div>
                 {% endif %}
-
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="api_token" value="{{ token }}">
@@ -125,6 +121,13 @@
                     Выйти и авторизоваться заново
                 </a>
             </div>
+            {% endif %}
+            {% if step == 'processing' %}
+                <div class="section">
+                    <h2> Обрабатывается {{ images_count }} файлов...</h2>
+                    <p>ID задачи: {{ task_id }}</p>
+                    <p><em>Обработка в фоне - можно закрыть страницу</em></p>
+                </div>
             {% endif %}
             {% if step == 'results' %}
             <div class="section">

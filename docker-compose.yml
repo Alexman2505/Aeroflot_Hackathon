@@ -3,17 +3,30 @@
 # http://localhost:8000/api/ - API основного бэкенда
 # http://localhost:8001 - photo server (runserver)
 # http://localhost:8001/api/ - API photo server
+# Redis: localhost:6379
 
 # version: '3.8'
 
 volumes:
   pg_data:
+  redis_data:
 
 networks:
   app-network:
     driver: bridge
 
 services:
+  # Redis для Celery
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    command: redis-server --appendonly yes
+
   # База данных postgres
   db:
     image: postgres:13.10
@@ -46,6 +59,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     command: >
       sh -c "echo 'Ожидание базы данных...' &&
              sleep 15 &&
@@ -60,6 +75,25 @@ services:
              echo 'Запуск сервера...' &&
              gunicorn --workers 4 --timeout 120 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
 
+  # Celery Worker для photo_server
+  celery_worker:
+    build: ./photo_server/
+    env_file: ./photo_server/.env
+    volumes:
+      - ./photo_server:/app
+      - ./photo_server/media:/app/media  # Общая папка для временных файлов
+    networks:
+      - app-network
+    depends_on:
+      - redis
+      - photo_server
+    command: >
+      sh -c "echo 'Ожидание Redis и Photo Server...' &&
+             sleep 20 &&
+             echo 'Запуск Celery Worker...' &&
+             celery -A image_service worker --loglevel=info --concurrency=2"
+
+
   # Photo Server
   photo_server:
     build: ./photo_server/
@@ -68,18 +102,22 @@ services:
       - "8001:8000"
     volumes:
       - ./photo_server:/app
+      - ./photo_server/media:/app/media  # Важно: общая папка с celery_worker
     networks:
       - app-network
     depends_on:
       - backend
+      - redis
     command: >
-      sh -c "echo 'Ожидание основного бэкенда...' &&
+      sh -c "echo 'Ожидание основного бэкенда и Redis...' &&
              sleep 25 &&
              echo 'Создание миграций...' &&
              python manage.py makemigrations --noinput &&
              echo 'Применение миграций...' &&
              python manage.py migrate &&
+             echo 'Создание папки для временных файлов...' &&
+             mkdir -p /app/media/temp_uploads &&
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск фото сервера...' &&
-             gunicorn --workers 4 --bind 0.0.0.0:8000 image_service.wsgi:application"
+             gunicorn --workers 2 --bind 0.0.0.0:8000 image_service.wsgi:application"

@@ -1,8 +1,11 @@
-import base64
+# import base64
+import os
+import uuid
 import requests
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.conf import settings
+from .tasks import process_image_batch
 
 
 def index(request):
@@ -96,56 +99,59 @@ def handle_auth_step(request, context):
 
 def handle_image_upload(request, context):
     """
-    Обрабатывает загрузку и отправку изображений на внешний API.
-    Теперь использует бинарную передачу вместо base64.
+    ПРАВИЛЬНАЯ асинхронная обработка.
     """
     token = request.POST.get('api_token', '').strip()
     name = request.session.get('sender_name', '')
-    image_files = request.FILES.getlist('images')  # Бинарные файлы
+    image_files = request.FILES.getlist('images')
     expected_objects = request.POST.get('expected_objects', '11')
     expected_confidence = request.POST.get('expected_confidence', '0.90')
 
     if token and name and image_files:
-        success_count = 0
-        delivery_failed_count = 0
-        rejected_count = 0
-        server_error_count = 0
-
+        # Сохраняем файлы во временное хранилище
+        temp_file_paths = []
         for image_file in image_files:
-            # ОТПРАВКА БИНАРНОГО ФАЙЛА
-            result = send_to_aerotoolkit_api_binary(
-                name=name,
-                image_file=image_file,  # Передаем файл напрямую
-                token=token,
-                expected_objects=expected_objects,
-                expected_confidence=expected_confidence,
+            file_extension = os.path.splitext(image_file.name)[1]
+            temp_filename = f"{uuid.uuid4().hex}{file_extension}"
+            temp_file_path = os.path.join(
+                settings.TEMP_UPLOAD_DIR, temp_filename
             )
 
-            if result == "success":
-                success_count += 1
-            elif result == "delivered_but_rejected":
-                rejected_count += 1
-            elif result == "delivered_but_server_error":
-                server_error_count += 1
-            else:
-                delivery_failed_count += 1
+            with open(temp_file_path, 'wb+') as destination:
+                for chunk in image_file.chunks():
+                    destination.write(chunk)
 
+            temp_file_paths.append(temp_file_path)
+
+        # Подготавливаем данные для задачи
+        user_data = {
+            'name': name,
+            'expected_objects': expected_objects,
+            'expected_confidence': expected_confidence,
+        }
+
+        # запускаем фоновую задачу без ожидания
+        task = process_image_batch.delay(
+            file_paths=temp_file_paths, token=token, user_data=user_data
+        )
+
+        # мгновенный ответ пользователю
         context.update(
             {
-                'step': 'results',
+                'step': 'processing',  # Новый шаг "обработка"
+                'task_id': task.id,  # Сохраняем ID задачи
+                'images_count': len(image_files),
                 'submitted': True,
                 'sender_name': name,
-                'success_count': success_count,
-                'delivery_failed_count': delivery_failed_count,
-                'rejected_count': rejected_count,
-                'server_error_count': server_error_count,
                 'expected_objects': expected_objects,
                 'expected_confidence': expected_confidence,
             }
         )
+
     else:
         context['step'] = 'upload'
         context['error'] = 'Ошибка: заполните все обязательные поля'
+
     return context
 
 
@@ -231,57 +237,57 @@ def get_auth_token(username, password, auth_url=None):
         return None
 
 
-def send_to_aerotoolkit_api_binary(
-    name,
-    image_file,
-    token,
-    expected_objects=None,
-    expected_confidence=None,
-):
-    """
-    Отправляет бинарный файл на API AeroToolKit.
-    """
-    text = (
-        f"Фотография автоматически загружена через систему фотофиксации.\n"
-        f"Сотрудник: {name}\n"
-        f"Время отправки: {timezone.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
-        f"Файл: {image_file.name}\n"
-        f"Ожидаемое количество: {int(expected_objects)}\n"
-        f"Уверенность: {float(expected_confidence)}"
-    )
+# def send_to_aerotoolkit_api_binary(
+#     name,
+#     image_file,
+#     token,
+#     expected_objects=None,
+#     expected_confidence=None,
+# ):
+#     """
+#     Отправляет бинарный файл на API AeroToolKit.
+#     """
+#     text = (
+#         f"Фотография автоматически загружена через систему фотофиксации.\n"
+#         f"Сотрудник: {name}\n"
+#         f"Время отправки: {timezone.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
+#         f"Файл: {image_file.name}\n"
+#         f"Ожидаемое количество: {int(expected_objects)}\n"
+#         f"Уверенность: {float(expected_confidence)}"
+#     )
 
-    # Подготавливаем multipart/form-data
-    files = {'image': (image_file.name, image_file.file, 'image/jpeg')}
+#     # Подготавливаем multipart/form-data
+#     files = {'image': (image_file.name, image_file.file, 'image/jpeg')}
 
-    data = {
-        'text': text,
-        'expected_objects': expected_objects,
-        'expected_confidence': expected_confidence,
-        'filename': image_file.name,
-    }
+#     data = {
+#         'text': text,
+#         'expected_objects': expected_objects,
+#         'expected_confidence': expected_confidence,
+#         'filename': image_file.name,
+#     }
 
-    headers = {
-        'Authorization': f'Token {token}',
-    }
+#     headers = {
+#         'Authorization': f'Token {token}',
+#     }
 
-    try:
-        response = requests.post(
-            settings.AEROTOOLKIT_API_URL,
-            files=files,
-            data=data,
-            headers=headers,
-            timeout=30,
-        )
+#     try:
+#         response = requests.post(
+#             settings.AEROTOOLKIT_API_URL,
+#             files=files,
+#             data=data,
+#             headers=headers,
+#             timeout=30,
+#         )
 
-        if response.status_code in [200, 201]:
-            return "success"
-        elif 400 <= response.status_code < 500:
-            return "delivered_but_rejected"
-        elif response.status_code >= 500:
-            return "delivered_but_server_error"
-        else:
-            return "delivery_failed"
+#         if response.status_code in [200, 201]:
+#             return "success"
+#         elif 400 <= response.status_code < 500:
+#             return "delivered_but_rejected"
+#         elif response.status_code >= 500:
+#             return "delivered_but_server_error"
+#         else:
+#             return "delivery_failed"
 
-    except requests.exceptions.RequestException as e:
-        print(f"Ошибка подключения: {e}")
-        return "delivery_failed"
+#     except requests.exceptions.RequestException as e:
+#         print(f"Ошибка подключения: {e}")
+#         return "delivery_failed"

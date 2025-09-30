@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-
+from celery import Celery
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -110,7 +110,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'ru-ru'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
+USE_TZ = True
 
 USE_I18N = True
 
@@ -161,3 +162,16 @@ LANGUAGE_COOKIE_NAME = 'photo_service_language'
 # Убедитесь что сессии изолированы
 SESSION_COOKIE_PATH = '/'
 SESSION_COOKIE_DOMAIN = None  # Не делить cookies с AeroToolKit
+
+# Настройки Celery
+CELERY_BROKER_URL = 'redis://redis:6379/0'  # или ваши креды Redis
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Europe/Moscow'
+CELERY_ENABLE_UTC = False
+
+# Создаем временную папку для загрузок
+TEMP_UPLOAD_DIR = os.path.join(MEDIA_ROOT, 'temp_uploads')
+os.makedirs(TEMP_UPLOAD_DIR, exist_ok=True)
