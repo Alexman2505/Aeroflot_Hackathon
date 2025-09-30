@@ -250,3 +250,8 @@ EXPECTED_CONFIDENCE = 0.90
 # Чтобы джанга не лагала при загрузке больших файлов.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
+MIGRATION_MODULES = {
+    'users': 'users.migrations',  # Миграции users в users/migrations/
+    'instruments': 'instruments.migrations',  # Миграции instruments в instruments/migrations/
+    # 'app_name': 'app_name.migrations'    # Шаблон
+}
