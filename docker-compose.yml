@@ -91,7 +91,7 @@ services:
       sh -c "echo 'Ожидание Redis и Photo Server...' &&
              sleep 20 &&
              echo 'Запуск Celery Worker...' &&
-             celery -A image_service worker --loglevel=info --concurrency=4"
+             celery -A image_service worker --loglevel=info --concurrency=8"
 
 
   # Photo Server
