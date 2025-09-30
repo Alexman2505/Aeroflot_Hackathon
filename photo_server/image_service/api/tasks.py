@@ -10,6 +10,10 @@ def send_single_image(temp_file_path, token, user_data):
     """
     Фоновая задача для отправки одного изображения.
     """
+    print(
+        f"[Celery] send_single_image запущен: {os.path.basename(temp_file_path)}",
+        flush=True,
+    )
     try:
         # Читаем сохраненный файл
         with open(temp_file_path, 'rb') as f:
@@ -50,6 +54,10 @@ def send_single_image(temp_file_path, token, user_data):
             os.remove(temp_file_path)
         except OSError:
             pass
+        print(
+            f" [Celery] Файл отправлен: {os.path.basename(temp_file_path)}",
+            flush=True,
+        )
 
         return {
             'status': (
@@ -60,6 +68,7 @@ def send_single_image(temp_file_path, token, user_data):
         }
 
     except Exception as e:
+        print(f"[Celery] Ошибка: {e}", flush=True)
         # Очищаем временный файл в случае ошибки
         try:
             os.remove(temp_file_path)
@@ -74,16 +83,17 @@ def send_single_image(temp_file_path, token, user_data):
 
 @shared_task
 def process_image_batch(file_paths, token, user_data):
-    """
-    Обрабатывает пачку изображений БЕЗ блокировки.
-    """
-    # Запускаем задачи для каждого файла
-    for file_path in file_paths:
+    print(
+        f" [Celery] process_image_batch запущен, файлов: {len(file_paths)}",
+        flush=True,
+    )
+
+    for i, file_path in enumerate(file_paths):
+        print(
+            f" [Celery] Запускаем send_single_image для файла {i+1}",
+            flush=True,
+        )
         send_single_image.delay(file_path, token, user_data)
 
-    # Возвращаем только информацию о запуске, не ждем результаты
-    return {
-        'status': 'started',
-        'files_count': len(file_paths),
-        'message': 'Files are being processed in background',
-    }
+    print(" [Celery] Все задачи отправлены в очередь", flush=True)
+    return {"status": "started", "files_count": len(file_paths)}
