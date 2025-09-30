@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.conf import settings
 from .tasks import process_image_batch
+import time
 
 
 def index(request):
@@ -99,18 +100,26 @@ def handle_auth_step(request, context):
 
 def handle_image_upload(request, context):
     """
-    ПРАВИЛЬНАЯ асинхронная обработка.
+    Асинхронная обработка изображений.
     """
+    start_total = time.time()
+    print(f"[{time.time()}] НАЧАЛО handle_image_upload", flush=True)
+
     token = request.POST.get('api_token', '').strip()
     name = request.session.get('sender_name', '')
     image_files = request.FILES.getlist('images')
     expected_objects = request.POST.get('expected_objects', '11')
     expected_confidence = request.POST.get('expected_confidence', '0.90')
+    start_time = time.time()
+
+    print(f"Получено файлов: {len(image_files)}", flush=True)
 
     if token and name and image_files:
         # Сохраняем файлы во временное хранилище
         temp_file_paths = []
-        for image_file in image_files:
+        start_save = time.time()
+        for i, image_file in enumerate(image_files):
+            file_start = time.time()
             file_extension = os.path.splitext(image_file.name)[1]
             temp_filename = f"{uuid.uuid4().hex}{file_extension}"
             temp_file_path = os.path.join(
@@ -123,6 +132,12 @@ def handle_image_upload(request, context):
 
             temp_file_paths.append(temp_file_path)
 
+            file_time = time.time() - file_start
+            print(f"Файл {i+1} сохранен за {file_time:.2f}сек", flush=True)
+
+        save_time = time.time() - start_save
+        print(f"ВСЕ файлы сохранены за {save_time:.2f}сек", flush=True)
+
         # Подготавливаем данные для задачи
         user_data = {
             'name': name,
@@ -130,9 +145,18 @@ def handle_image_upload(request, context):
             'expected_confidence': expected_confidence,
         }
 
+        print(f" Запускаем Celery задачу...", flush=True)
+        start_celery = time.time()
+
         # запускаем фоновую задачу без ожидания
         task = process_image_batch.delay(
             file_paths=temp_file_paths, token=token, user_data=user_data
+        )
+
+        celery_time = time.time() - start_celery
+        print(
+            f" Celery задача запущена за {celery_time:.2f}сек, ID: {task.id}",
+            flush=True,
         )
 
         # мгновенный ответ пользователю
@@ -146,6 +170,12 @@ def handle_image_upload(request, context):
                 'expected_objects': expected_objects,
                 'expected_confidence': expected_confidence,
             }
+        )
+
+        total_time = time.time() - start_total
+        print(
+            f"ОБЩЕЕ ВРЕМЯ handle_image_upload: {total_time:.2f}сек",
+            flush=True,
         )
 
     else:
