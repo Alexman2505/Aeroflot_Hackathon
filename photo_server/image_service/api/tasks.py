@@ -3,6 +3,7 @@ import requests
 from celery import shared_task
 from django.utils import timezone
 from django.conf import settings
+import time
 
 
 @shared_task
@@ -10,15 +11,29 @@ def send_single_image(temp_file_path, token, user_data):
     """
     Фоновая задача для отправки одного изображения.
     """
+    task_start = time.time()
+    filename = os.path.basename(temp_file_path)
     print(
-        f"[Celery] send_single_image запущен: {os.path.basename(temp_file_path)}",
+        f"[{time.time()}] [Celery] send_single_image ЗАПУЩЕН: {filename}",
         flush=True,
     )
+    print(
+        f"[{time.time()}] [Celery]   token: {'ЕСТЬ' if token else 'НЕТ'}",
+        flush=True,
+    )
+    print(f"[{time.time()}] [Celery]   user_data: {user_data}", flush=True)
+
     try:
         # Читаем сохраненный файл
+        read_start = time.time()
+        print(f"[{time.time()}] [Celery] Читаем файл {filename}", flush=True)
         with open(temp_file_path, 'rb') as f:
             image_data = f.read()
-            filename = os.path.basename(temp_file_path)
+        read_time = time.time() - read_start
+        print(
+            f"[{time.time()}] [Celery] Файл прочитан за {read_time:.3f}сек, размер: {len(image_data)} bytes",
+            flush=True,
+        )
 
         # Подготавливаем данные для отправки
         text = (
@@ -40,7 +55,13 @@ def send_single_image(temp_file_path, token, user_data):
 
         headers = {'Authorization': f'Token {token}'}
 
+        print(
+            f"[{time.time()}] [Celery] Отправляем запрос к {settings.AEROTOOLKIT_API_URL}",
+            flush=True,
+        )
+
         # Отправка на API
+        send_start = time.time()
         response = requests.post(
             settings.AEROTOOLKIT_API_URL,
             files=files,
@@ -48,14 +69,30 @@ def send_single_image(temp_file_path, token, user_data):
             headers=headers,
             timeout=20,
         )
+        send_time = time.time() - send_start
+
+        print(
+            f"[{time.time()}] [Celery] Ответ получен за {send_time:.3f}сек, статус: {response.status_code}",
+            flush=True,
+        )
 
         # Очищаем временный файл
+        cleanup_start = time.time()
         try:
             os.remove(temp_file_path)
-        except OSError:
-            pass
+            print(
+                f"[{time.time()}] [Celery] Временный файл удален за {time.time()-cleanup_start:.3f}сек",
+                flush=True,
+            )
+        except OSError as e:
+            print(
+                f"[{time.time()}] [Celery] Ошибка удаления файла: {e}",
+                flush=True,
+            )
+
+        total_time = time.time() - task_start
         print(
-            f" [Celery] Файл отправлен: {os.path.basename(temp_file_path)}",
+            f"[{time.time()}] [Celery]  Файл ОТПРАВЛЕН: {filename}, общее время: {total_time:.3f}сек",
             flush=True,
         )
 
@@ -68,32 +105,55 @@ def send_single_image(temp_file_path, token, user_data):
         }
 
     except Exception as e:
-        print(f"[Celery] Ошибка: {e}", flush=True)
+        error_time = time.time() - task_start
+        print(
+            f"[{time.time()}] [Celery]  ОШИБКА в send_single_image: {e}, время: {error_time:.3f}сек",
+            flush=True,
+        )
+
         # Очищаем временный файл в случае ошибки
         try:
             os.remove(temp_file_path)
+            print(
+                f"[{time.time()}] [Celery] Временный файл удален после ошибки",
+                flush=True,
+            )
         except OSError:
             pass
+
         return {
             'status': 'failed',
-            'filename': os.path.basename(temp_file_path),
+            'filename': filename,
             'error': str(e),
         }
 
 
 @shared_task
 def process_image_batch(file_paths, token, user_data):
+    """
+    Задача для обработки пакета изображений.
+    """
+    task_start = time.time()
+    print(f"[{time.time()}] [Celery]  process_image_batch ЗАПУЩЕН", flush=True)
+    print(f"[{time.time()}] [Celery]   файлов: {len(file_paths)}", flush=True)
     print(
-        f" [Celery] process_image_batch запущен, файлов: {len(file_paths)}",
+        f"[{time.time()}] [Celery]   token: {'ЕСТЬ' if token else 'НЕТ'}",
         flush=True,
     )
+    print(f"[{time.time()}] [Celery]   user_data: {user_data}", flush=True)
 
+    # Запускаем отдельные задачи для каждого файла
     for i, file_path in enumerate(file_paths):
         print(
-            f" [Celery] Запускаем send_single_image для файла {i+1}",
+            f"[{time.time()}] [Celery] Запускаем send_single_image для файла {i+1}: {os.path.basename(file_path)}",
             flush=True,
         )
         send_single_image.delay(file_path, token, user_data)
 
-    print(" [Celery] Все задачи отправлены в очередь", flush=True)
+    total_time = time.time() - task_start
+    print(
+        f"[{time.time()}] [Celery]  process_image_batch ЗАВЕРШЕН: все {len(file_paths)} задач отправлены в очередь, время: {total_time:.3f}сек",
+        flush=True,
+    )
+
     return {"status": "started", "files_count": len(file_paths)}
