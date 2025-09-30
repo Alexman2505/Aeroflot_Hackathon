@@ -47,19 +47,16 @@ services:
       db:
         condition: service_healthy
     command: >
-        sh -c "echo 'Ожидание базы данных...' &&
-              sleep 15 &&
-              echo 'Создание миграций для всех приложений...' &&
-              for app in users instruments; do
-                python manage.py makemigrations \$app --noinput || echo \"Migrations for \$app OK\"
-              done &&
-              python manage.py makemigrations --noinput || echo 'Other migrations OK' &&
-              echo 'Применение миграций...' &&
-              python manage.py migrate &&
-              echo 'Сбор статики...' &&
-              python manage.py collectstatic --noinput &&
-              echo 'Запуск сервера...' &&
-              gunicorn --workers 4 --timeout 120 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
+      sh -c "echo 'Ожидание базы данных...' &&
+             sleep 15 &&
+             echo 'Создание миграций...' &&
+             python manage.py makemigrations --noinput || echo 'Миграции уже существуют' &&
+             echo 'Применение миграций...' &&
+             python manage.py migrate &&
+             echo 'Сбор статики...' &&
+             python manage.py collectstatic --noinput &&
+             echo 'Запуск сервера...' &&
+             gunicorn --workers 4 --timeout 120 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
 
   # Photo Server
   photo_server:
