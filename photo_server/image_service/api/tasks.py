@@ -67,7 +67,7 @@ def send_single_image(temp_file_path, token, user_data):
             files=files,
             data=data,
             headers=headers,
-            timeout=20,
+            timeout=60,
         )
         send_time = time.time() - send_start
 
