@@ -30,6 +30,8 @@ services:
       resources:
         limits:
           cpus: '0.5'
+          memory: 2G
+        reservations:
           memory: 1G
 
   # База данных postgres
@@ -55,6 +57,8 @@ services:
       resources:
         limits:
           cpus: '1.0'
+          memory: 6G
+        reservations:
           memory: 4G
 
   # Backend/AeroToolKit
@@ -70,8 +74,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '3'
+          cpus: '2.0'
           memory: 8G
+        reservations:
+          memory: 4G
     depends_on:
       db:
         condition: service_healthy
@@ -89,7 +95,7 @@ services:
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск сервера...' &&
-             gunicorn --workers 6 --threads 2 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
+             gunicorn --workers 3 --threads 4 --bind 0.0.0.0:8000 --timeout 120 --max-requests 1000 --max-requests-jitter 100 AeroToolKit.wsgi:application"
 
   # Celery Worker для бэкенда
   backend_celery:
@@ -102,8 +108,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 6G
+          cpus: '1.0'
+          memory: 4G
+        reservations:
+          memory: 2G
     depends_on:
       - redis
       - backend
@@ -111,7 +119,8 @@ services:
       sh -c "echo 'Ожидание Redis и Backend...' &&
              sleep 20 &&
              echo 'Запуск Backend Celery Worker...' &&
-             celery -A AeroToolKit worker --loglevel=info --concurrency=1 -Q backend_tasks --max-tasks-per-child 10"
+             celery -A AeroToolKit worker --loglevel=info --concurrency=3 -Q backend_tasks --max-tasks-per-child 100 --without-gossip --without-mingle --prefetch-multiplier 2"
+
 
   # Celery Worker для photo_server
   celery_worker:
@@ -125,7 +134,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: '2.5'
+          memory: 12G
+        reservations:
           memory: 8G
     depends_on:
       - redis
@@ -134,7 +145,7 @@ services:
       sh -c "echo 'Ожидание Redis и Photo Server...' &&
              sleep 20 &&
              echo 'Запуск Photo Server Celery Worker...' &&
-             celery -A image_service worker --loglevel=info --concurrency=8 -Q photo_tasks"
+             celery -A image_service worker --loglevel=info --concurrency=4 -Q photo_tasks --without-gossip --without-mingle --time-limit 600 --prefetch-multiplier 1"
 
   # Photo Server
   photo_server:
@@ -152,6 +163,8 @@ services:
         limits:
           cpus: '0.5'
           memory: 2G
+        reservations:
+          memory: 1G
     depends_on:
       - backend
       - redis
@@ -167,4 +180,4 @@ services:
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск фото сервера...' &&
-             gunicorn --workers 16 --threads 2 --bind 0.0.0.0:8000 image_service.wsgi:application"
+             gunicorn --workers 4 --threads 2 --bind 0.0.0.0:8000 --timeout 90 --max-requests 500 image_service.wsgi:application"
