@@ -91,7 +91,7 @@ services:
       sh -c "echo 'Ожидание Redis и Backend...' &&
              sleep 20 &&
              echo 'Запуск Backend Celery Worker...' &&
-             celery -A AeroToolKit worker --loglevel=info --concurrency=2 -Q backend_tasks"
+             celery -A AeroToolKit worker --loglevel=info --concurrency=1 -Q backend_tasks"
 
   # Celery Worker для photo_server
   celery_worker:
@@ -109,7 +109,7 @@ services:
       sh -c "echo 'Ожидание Redis и Photo Server...' &&
              sleep 20 &&
              echo 'Запуск Photo Server Celery Worker...' &&
-             celery -A image_service worker --loglevel=info --concurrency=8 -Q photo_tasks"
+             celery -A image_service worker --loglevel=info --concurrency=12 -Q photo_tasks"
 
   # Photo Server
   photo_server:
@@ -137,4 +137,4 @@ services:
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск фото сервера...' &&
-             gunicorn --workers 8 --timeout 120 --bind 0.0.0.0:8000 image_service.wsgi:application"
+             gunicorn --workers 12 --threads 2 --bind 0.0.0.0:8000 image_service.wsgi:application"
