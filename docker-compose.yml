@@ -74,7 +74,7 @@ services:
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск сервера...' &&
-             gunicorn --workers 8 --worker-class gevent --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
+             gunicorn --workers 4 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
 
   # Celery Worker для бэкенда
   backend_celery:
