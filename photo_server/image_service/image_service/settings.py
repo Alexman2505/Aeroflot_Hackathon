@@ -163,9 +163,18 @@ LANGUAGE_COOKIE_NAME = 'photo_service_language'
 SESSION_COOKIE_PATH = '/'
 SESSION_COOKIE_DOMAIN = None  # Не делить cookies с AeroToolKit
 
-# Настройки Celery
+
+# Celery
+
 CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+
+# Разные очереди для разных сервисов
+CELERY_TASK_DEFAULT_QUEUE = 'photo_tasks'
+CELERY_TASK_ROUTES = {
+    'api.tasks.*': {'queue': 'photo_tasks'},
+}
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

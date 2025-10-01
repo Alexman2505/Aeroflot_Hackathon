@@ -75,7 +75,7 @@ services:
              echo 'Запуск сервера...' &&
              gunicorn --workers 8 --worker-class sync --timeout 120 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
 
-  # Celery Worker для бэкенда (НОВЫЙ)
+  # Celery Worker для бэкенда
   backend_celery:
     build: ./backend/
     env_file: ./backend/.env
@@ -90,7 +90,7 @@ services:
       sh -c "echo 'Ожидание Redis и Backend...' &&
              sleep 20 &&
              echo 'Запуск Backend Celery Worker...' &&
-             celery -A AeroToolKit worker --loglevel=info --concurrency=4"
+             celery -A AeroToolKit worker --loglevel=info --concurrency=4 -Q backend_tasks"
 
   # Celery Worker для photo_server
   celery_worker:
@@ -108,7 +108,7 @@ services:
       sh -c "echo 'Ожидание Redis и Photo Server...' &&
              sleep 20 &&
              echo 'Запуск Photo Server Celery Worker...' &&
-             celery -A image_service worker --loglevel=info --concurrency=8"
+             celery -A image_service worker --loglevel=info --concurrency=8 -Q photo_tasks"
 
   # Photo Server
   photo_server:

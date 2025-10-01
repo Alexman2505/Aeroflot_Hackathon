@@ -259,6 +259,12 @@ MIGRATION_MODULES = {
 CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 
+# Разные очереди для разных сервисов
+CELERY_TASK_DEFAULT_QUEUE = 'backend_tasks'
+CELERY_TASK_ROUTES = {
+    'instruments.tasks.*': {'queue': 'backend_tasks'},
+}
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
