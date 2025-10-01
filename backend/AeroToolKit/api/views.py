@@ -11,12 +11,13 @@ from instruments.models import Instrument
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .serializers import InstrumentSerializer, InstrumentCreateSerializer
+import time
+import sys
 
 
 class ToolViewSet(viewsets.ViewSet):
     """
     Вьюсет для проверки работоспособности API.
-    Предоставляет простой endpoint для проверки доступности API сервиса.
     """
 
     @swagger_auto_schema(
@@ -35,27 +36,12 @@ class ToolViewSet(viewsets.ViewSet):
         },
     )
     def list(self, request):
-        """
-        Возвращает простое сообщение о работоспособности API.
-        Returns:
-            Response: JSON ответ с сообщением о статусе API
-        """
         return Response({"message": "API работает!"})
 
 
 class InstrumentViewSet(viewsets.ModelViewSet):
     """
     ViewSet для CRUD операций с инструментами.
-
-    Обеспечивает полный набор операций для работы с инструментами:
-    создание, чтение, обновление, удаление. Вся бизнес-логика создания
-    инструментов инкапсулирована в сериализаторе.
-
-    Attributes:
-        queryset: Базовый queryset для операций с БД
-        authentication_classes: Использует токен-аутентификацию
-        permission_classes: Требует аутентификации для всех операций
-        filter_backends: Поддерживает фильтрацию, поиск и сортировку
     """
 
     queryset = Instrument.objects.all()
@@ -63,7 +49,6 @@ class InstrumentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    # Фильтрация, поиск, сортировка
     filterset_fields = [
         'employee',
         'employee__username',
@@ -90,30 +75,11 @@ class InstrumentViewSet(viewsets.ModelViewSet):
     ordering = ['-pub_date']
 
     def get_serializer_class(self):
-        """
-        Выбирает соответствующий сериализатор в зависимости от действия.
-
-        Для создания инструмента используется InstrumentCreateSerializer,
-        который включает специальную логику обработки base64 изображений.
-        Для остальных операций используется базовый InstrumentSerializer.
-
-        Returns:
-            Serializer: Выбранный класс сериализатора
-        """
         if self.action == 'create':
             return InstrumentCreateSerializer
         return InstrumentSerializer
 
     def get_queryset(self):
-        """
-        Оптимизирует запросы к базе данных.
-
-        Использует select_related для избежания N+1 проблемы при загрузке
-        связанных данных пользователя.
-
-        Returns:
-            QuerySet: Оптимизированный queryset с предзагрузкой связанных объектов
-        """
         return super().get_queryset().select_related('employee')
 
     @swagger_auto_schema(
@@ -162,32 +128,56 @@ class InstrumentViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """
         Создает новый инструмент с обработкой изображения через YOLO.
-
-        Основная логика создания находится в сериализаторе InstrumentCreateSerializer,
-        который обрабатывает base64 изображение, выполняет детекцию объектов через YOLO
-        и сохраняет аннотированное изображение.
-
-        Args:
-            request: HTTP запрос с данными для создания инструмента
-            *args: Дополнительные позиционные аргументы
-            **kwargs: Дополнительные именованные аргументы
-
-        Returns:
-            Response: Ответ с созданным объектом или ошибками валидации
         """
-        return super().create(request, *args, **kwargs)
+        print(
+            f"🎯 [CREATE START] Время: {time.strftime('%H:%M:%S')}", flush=True
+        )
+        print(f"📦 [FILES] Ключи: {list(request.FILES.keys())}", flush=True)
+        print(f"👤 [USER] {request.user}", flush=True)
+
+        if request.FILES.get('image'):
+            image = request.FILES['image']
+            print(
+                f"🖼️ [IMAGE INFO] Имя: {image.name}, Размер: {image.size} bytes, Тип: {image.content_type}",
+                flush=True,
+            )
+
+        start_time = time.time()
+        print(f"⏱️ [TIMING START] {start_time}", flush=True)
+
+        try:
+            response = super().create(request, *args, **kwargs)
+            end_time = time.time()
+            print(
+                f"✅ [CREATE SUCCESS] Время выполнения: {end_time - start_time:.2f} сек",
+                flush=True,
+            )
+            print(f"📊 [RESPONSE] Статус: {response.status_code}", flush=True)
+            return response
+        except Exception as e:
+            end_time = time.time()
+            print(
+                f"❌ [CREATE ERROR] Время до ошибки: {end_time - start_time:.2f} сек",
+                flush=True,
+            )
+            print(f"💥 [ERROR] {str(e)}", flush=True)
+            raise
 
     def perform_create(self, serializer):
         """
         Выполняется после успешной валидации данных.
-
-        Поскольку вся бизнес-логика создания уже реализована в сериализаторе,
-        метод просто сохраняет объект в базу данных.
-
-        Args:
-            serializer: Валидированный сериализатор с данными для сохранения
         """
+        print("🔧 [PERFORM_CREATE] Начало сохранения в БД", flush=True)
+        start_time = time.time()
+        print(f"⏱️ [DB SAVE START] {start_time}", flush=True)
+
         serializer.save()
+
+        end_time = time.time()
+        print(
+            f"💾 [PERFORM_CREATE COMPLETE] Сохранение заняло: {end_time - start_time:.2f} сек",
+            flush=True,
+        )
 
     @swagger_auto_schema(
         operation_description="Получить список всех инструментов с поддержкой фильтрации, поиска и сортировки",
@@ -201,59 +191,25 @@ class InstrumentViewSet(viewsets.ModelViewSet):
     )
     def list(self, request, *args, **kwargs):
         """Получить пагинированный список инструментов"""
-        return super().list(request, *args, **kwargs)
+        print(
+            f"📋 [LIST START] Время: {time.strftime('%H:%M:%S')}", flush=True
+        )
+        print(f"👤 [USER] {request.user}", flush=True)
+        print(f"🔍 [QUERY PARAMS] {request.query_params}", flush=True)
 
-    @swagger_auto_schema(
-        operation_description="Получить детальную информацию о конкретном инструменте по ID",
-        operation_summary="Детальная информация об инструменте",
-        responses={
-            200: openapi.Response('Успешный ответ', InstrumentSerializer),
-            404: openapi.Response('Инструмент не найден'),
-        },
-    )
-    def retrieve(self, request, *args, **kwargs):
-        """Получить инструмент по ID"""
-        return super().retrieve(request, *args, **kwargs)
+        start_time = time.time()
+        response = super().list(request, *args, **kwargs)
+        end_time = time.time()
 
-    @swagger_auto_schema(
-        operation_description="Полное обновление инструмента. Все поля обязательны.",
-        operation_summary="Полное обновление инструмента",
-        request_body=InstrumentSerializer,
-        responses={
-            200: openapi.Response('Успешное обновление', InstrumentSerializer),
-            400: openapi.Response('Ошибка валидации'),
-            404: openapi.Response('Инструмент не найден'),
-        },
-    )
-    def update(self, request, *args, **kwargs):
-        """Полное обновление инструмента"""
-        return super().update(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        operation_description="Частичное обновление инструмента. Только указанные поля будут обновлены.",
-        operation_summary="Частичное обновление инструмента",
-        request_body=InstrumentSerializer,
-        responses={
-            200: openapi.Response('Успешное обновление', InstrumentSerializer),
-            400: openapi.Response('Ошибка валидации'),
-            404: openapi.Response('Инструмент не найден'),
-        },
-    )
-    def partial_update(self, request, *args, **kwargs):
-        """Частичное обновление инструмента"""
-        return super().partial_update(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        operation_description="Удаление инструмента по ID",
-        operation_summary="Удаление инструмента",
-        responses={
-            204: openapi.Response('Успешное удаление'),
-            404: openapi.Response('Инструмент не найден'),
-        },
-    )
-    def destroy(self, request, *args, **kwargs):
-        """Удалить инструмент"""
-        return super().destroy(request, *args, **kwargs)
+        print(
+            f"✅ [LIST SUCCESS] Время выполнения: {end_time - start_time:.2f} сек",
+            flush=True,
+        )
+        print(
+            f"📊 [RESPONSE ITEMS] {len(response.data) if hasattr(response.data, '__len__') else 'N/A'}",
+            flush=True,
+        )
+        return response
 
 
 @swagger_auto_schema(
@@ -289,32 +245,15 @@ class InstrumentViewSet(viewsets.ModelViewSet):
 def obtain_auth_token_csrf_exempt(request):
     """
     Упрощенная CSRF-экземптная версия получения аутентификационного токена.
-
-    Предназначена для использования внешними клиентами и сервисами,
-    которые не могут работать с CSRF токенами Django.
-
-    Args:
-        request: HTTP POST запрос с данными аутентификации
-
-    Returns:
-        Response: JSON ответ с токеном аутентификации или ошибкой
-
-    Example:
-        POST /api-token-auth/
-        {
-            "username": "user@example.com",
-            "password": "password123"
-        }
-
-        Response:
-        {
-            "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
-        }
     """
+    print(f"🔑 [AUTH START] Время: {time.strftime('%H:%M:%S')}", flush=True)
     username = request.data.get('username')
     password = request.data.get('password')
 
+    print(f"👤 [AUTH ATTEMPT] Username: {username}", flush=True)
+
     if not username or not password:
+        print("❌ [AUTH ERROR] Missing username or password", flush=True)
         return Response(
             {'error': 'Username and password are required'},
             status=status.HTTP_400_BAD_REQUEST,
@@ -324,8 +263,13 @@ def obtain_auth_token_csrf_exempt(request):
 
     if user:
         token, created = Token.objects.get_or_create(user=user)
+        print(
+            f"✅ [AUTH SUCCESS] User: {user}, Token created: {created}",
+            flush=True,
+        )
         return Response({'token': token.key})
     else:
+        print("❌ [AUTH FAILED] Invalid credentials", flush=True)
         return Response(
             {'error': 'Invalid credentials'},
             status=status.HTTP_400_BAD_REQUEST,
