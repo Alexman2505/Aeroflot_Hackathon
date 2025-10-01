@@ -5,7 +5,7 @@
 # http://localhost:8001/api/ - API photo server
 # Redis: localhost:6379
 
-version: '3.8'
+# version: '3.8'
 
 volumes:
   pg_data:
