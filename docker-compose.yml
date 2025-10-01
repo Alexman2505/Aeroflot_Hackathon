@@ -75,27 +75,24 @@ services:
              echo 'Запуск сервера...' &&
              gunicorn --workers 8 --worker-class sync --timeout 120 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
 
-  # Celery Worker для бэкенда
-  services:
-    # Celery Worker для бэкенда (НОВЫЙ)
-    backend_celery:
-      build: ./backend/
-      env_file: ./backend/.env
-      volumes:
-        - ./backend:/app
-      networks:
-        - app-network
-      depends_on:
-        - redis
-        - backend
-      command: >
-        sh -c "echo 'Ожидание Redis и Backend...' &&
-              sleep 20 &&
-              echo 'Запуск Backend Celery Worker...' &&
-              celery -A AeroToolKit worker --loglevel=info --concurrency=4"
+  # Celery Worker для бэкенда (НОВЫЙ)
+  backend_celery:
+    build: ./backend/
+    env_file: ./backend/.env
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
+    depends_on:
+      - redis
+      - backend
+    command: >
+      sh -c "echo 'Ожидание Redis и Backend...' &&
+             sleep 20 &&
+             echo 'Запуск Backend Celery Worker...' &&
+             celery -A AeroToolKit worker --loglevel=info --concurrency=4"
 
-
-# Celery Worker для photo_server
+  # Celery Worker для photo_server
   celery_worker:
     build: ./photo_server/
     env_file: ./photo_server/.env
@@ -113,7 +110,6 @@ services:
              echo 'Запуск Photo Server Celery Worker...' &&
              celery -A image_service worker --loglevel=info --concurrency=8"
 
-
   # Photo Server
   photo_server:
     build: ./photo_server/
@@ -122,7 +118,7 @@ services:
       - "8001:8000"
     volumes:
       - ./photo_server:/app
-      - ./photo_server/media:/app/media  # Важно: общая папка с celery_worker
+      - ./photo_server/media:/app/media
     networks:
       - app-network
     depends_on:
