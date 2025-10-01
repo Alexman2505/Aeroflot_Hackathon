@@ -73,8 +73,24 @@ services:
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск сервера...' &&
-             gunicorn --workers 16 --threads 4 --worker-class gthread --timeout 120 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
+             gunicorn --workers 8 --worker-class sync --timeout 120 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
 
+  # Celery Worker для бэкенда
+  backend_celery:
+    build: ./backend/
+    env_file: ./backend/.env
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
+    depends_on:
+      - redis
+      - backend
+    command: >
+      sh -c "echo 'Ожидание Redis и Backend...' &&
+             sleep 20 &&
+             echo 'Запуск Backend Celery Worker...' &&
+             celery -A AeroToolKit worker --loglevel=info --concurrency=4"
   # Celery Worker для photo_server
   celery_worker:
     build: ./photo_server/
