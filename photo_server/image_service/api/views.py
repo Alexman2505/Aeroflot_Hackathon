@@ -4,7 +4,6 @@ import requests
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.conf import settings
-from .tasks import process_image_batch
 import time
 from .tasks import send_single_image
 
@@ -12,6 +11,27 @@ from .tasks import send_single_image
 def index(request):
     """
     Главная view-функция приложения для многошаговой обработки изображений.
+
+    Обрабатывает все входящие запросы и управляет потоком работы приложения:
+    аутентификация → загрузка изображений → обработка → результаты.
+
+    Flow:
+    - GET запрос: отображение текущего шага (авторизация или загрузка)
+    - POST запрос: обработка данных формы и переход к следующему шагу
+    - Сессия: сохранение состояния между шагами
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса от клиента
+
+    Returns:
+        HttpResponse: Отрендеренный шаблон с контекстом текущего шага
+
+    Context:
+        current_timestamp (str): Текущее время в ISO формате
+        step (str): Текущий шаг процесса ('auth', 'upload', 'processing')
+        success_count (int): Количество успешно обработанных изображений
+        error_count (int): Количество ошибок обработки
+        images_count (int): Общее количество загруженных изображений
     """
     context = {
         'current_timestamp': timezone.now().isoformat(),
@@ -42,7 +62,22 @@ def index(request):
 
 def check_step(request, context):
     """
-    Анализирует POST-запрос и определяет текущий шаг.
+    Анализирует POST-запрос и определяет текущий шаг процесса.
+
+    На основе данных в POST запросе определяет, какой шаг процесса
+    должен быть обработан: авторизация или загрузка изображений.
+
+    Args:
+        request (HttpRequest): POST запрос с данными формы
+        context (dict): Текущий контекст шаблона
+
+    Returns:
+        dict: Обновленный контекст с определенным шагом
+
+    Detection Logic:
+    - username/password: шаг авторизации
+    - images/api_token: шаг загрузки изображений
+    - другие случаи: неизвестный шаг с логированием
     """
     print(f"[{time.time()}] check_step: проверяем параметры POST", flush=True)
 
@@ -77,7 +112,23 @@ def check_step(request, context):
 
 def handle_auth_step(request, context):
     """
-    Обрабатывает шаг авторизации пользователя.
+    Обрабатывает шаг авторизации пользователя в системе AeroToolKit.
+
+    Выполняет аутентификацию через API основного бэкенда и сохраняет
+    полученный токен в сессии для последующих запросов.
+
+    Args:
+        request (HttpRequest): POST запрос с учетными данными
+        context (dict): Текущий контекст шаблона
+
+    Returns:
+        dict: Обновленный контекст с результатом авторизации
+
+    Process:
+    1. Извлечение username и password из запроса
+    2. Вызов API аутентификации AeroToolKit
+    3. Сохранение токена в сессии при успехе
+    4. Установка следующего шага ('upload' или 'auth' с ошибкой)
     """
     print(f"[{time.time()}] handle_auth_step: начало", flush=True)
 
@@ -121,7 +172,26 @@ def handle_auth_step(request, context):
 
 def handle_image_upload(request, context):
     """
-    Асинхронная обработка изображений - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ.
+    Обрабатывает загрузку и асинхронную отправку изображений в основной бэкенд.
+
+    Оптимизированная версия обработки загруженных изображений:
+    - Сохранение файлов во временное хранилище
+    - Подготовка метаданных для обработки
+    - Асинхронная отправка через Celery задачи
+    - Детальное логирование производительности
+
+    Args:
+        request (HttpRequest): POST запрос с файлами изображений
+        context (dict): Текущий контекст шаблона
+
+    Returns:
+        dict: Обновленный контекст с результатами обработки
+
+    Performance Features:
+    - Параллельная обработка файлов через Celery
+    - Детальное измерение времени операций
+    - Оптимизированное сохранение временных файлов
+    - Мгновенный ответ пользователю без ожидания обработки
     """
     start_total = time.time()
     print(
@@ -320,6 +390,16 @@ def handle_image_upload(request, context):
 def handle_authenticated_user(request, context):
     """
     Обрабатывает запрос от уже авторизованного пользователя.
+
+    Определяет, что пользователь уже прошел аутентификацию и
+    перенаправляет его непосредственно на шаг загрузки изображений.
+
+    Args:
+        request (HttpRequest): Запрос от аутентифицированного пользователя
+        context (dict): Текущий контекст шаблона
+
+    Returns:
+        dict: Обновленный контекст с шагом 'upload' и данными пользователя
     """
     print(
         f"[{time.time()}] handle_authenticated_user: пользователь уже авторизован",
@@ -333,7 +413,16 @@ def handle_authenticated_user(request, context):
 
 def clear_session(request):
     """
-    Очищает сессию пользователя.
+    Очищает сессию пользователя и выполняет logout.
+
+    Удаляет все данные аутентификации из сессии и перенаправляет
+    пользователя на начальную страницу для новой авторизации.
+
+    Args:
+        request (HttpRequest): Запрос на очистку сессии
+
+    Returns:
+        HttpResponseRedirect: Перенаправление на главную страницу
     """
     print(f"[{time.time()}] clear_session: очистка сессии", flush=True)
     if 'aerotoolkit_token' in request.session:
@@ -346,6 +435,21 @@ def clear_session(request):
 def get_auth_token(username, password, auth_url=None):
     """
     Выполняет аутентификацию пользователя через API AeroToolKit.
+
+    Отправляет запрос к эндпоинту аутентификации основного бэкенда
+    и возвращает токен для последующих авторизованных запросов.
+
+    Args:
+        username (str): Имя пользователя для аутентификации
+        password (str): Пароль пользователя
+        auth_url (str, optional): URL эндпоинта аутентификации.
+                                Если None, используется настройка из settings.
+
+    Returns:
+        str: Аутентификационный токен при успехе, None при ошибке
+
+    Raises:
+        requests.exceptions.RequestException: При сетевых ошибках
     """
     print(
         f"[{time.time()}] get_auth_token: начало для пользователя {username}",

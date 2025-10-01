@@ -1,8 +1,8 @@
 from celery import shared_task
 from django.core.files.base import ContentFile
 import uuid
-from .models import Instrument
-from api.yolo_utils import run_yolo_inference
+from instruments.models import Instrument
+from .yolo_utils import run_yolo_inference
 
 
 @shared_task

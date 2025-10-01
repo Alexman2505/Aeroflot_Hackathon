@@ -3,7 +3,7 @@ import time
 from rest_framework import serializers
 from django.core.files.base import ContentFile
 from instruments.models import Instrument
-from .yolo_utils import run_yolo_inference
+from .tasks import process_instrument_with_yolo
 
 
 class InstrumentSerializer(serializers.ModelSerializer):
@@ -169,7 +169,6 @@ class InstrumentCreateSerializer(serializers.ModelSerializer):
 
             # ЗАПУСКАЕМ YOLO В ФОНОВОМ РЕЖИМЕ
             image_data = image_file.read()
-            from instruments.tasks import process_instrument_with_yolo
 
             process_instrument_with_yolo.delay(
                 instrument.id,

@@ -17,3 +17,4 @@ gunicorn==23.0.0
 celery
 redis
 django-celery-results
+drf-yasg==1.21.10

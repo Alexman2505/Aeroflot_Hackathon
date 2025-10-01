@@ -9,7 +9,49 @@ import time
 @shared_task
 def send_single_image(temp_file_path, token, user_data):
     """
-    Фоновая задача для отправки одного изображения.
+    Фоновая Celery задача для отправки одного изображения в основной бэкенд.
+
+    Выполняет асинхронную отправку изображения в AeroToolKit API с полной
+    информацией о сотруднике и параметрах обработки. Задача включает
+    детальное логирование и обработку ошибок.
+
+    Process Flow:
+    1. Чтение временного файла изображения с диска
+    2. Подготовка метаданных и текстового описания
+    3. Отправка POST запроса в основной бэкенд
+    4. Очистка временных файлов
+    5. Детальное логирование времени выполнения
+
+    Args:
+        temp_file_path (str): Путь к временному файлу изображения на диске
+        token (str): Аутентификационный токен для доступа к API бэкенда
+        user_data (dict): Данные пользователя и параметры обработки:
+            - name (str): Имя сотрудника
+            - expected_objects (int): Ожидаемое количество объектов
+            - expected_confidence (float): Порог уверенности распознавания
+
+    Returns:
+        dict: Результат выполнения задачи:
+            - status (str): 'success' при успешной отправке, 'failed' при ошибке
+            - filename (str): Имя обработанного файла
+            - status_code (int): HTTP статус код ответа от API (только при success)
+            - error (str): Сообщение об ошибке (только при failed)
+
+    Raises:
+        OSError: При проблемах чтения/удаления файлов
+        requests.exceptions.RequestException: При ошибках сетевого запроса
+        Exception: Любые другие неожиданные ошибки
+
+    Example:
+        >>> result = send_single_image.delay(
+        ...     temp_file_path='/app/media/temp_uploads/image123.jpg',
+        ...     token='9944b09199c6**********6dd0e4bbdfc6ee4b',
+        ...     user_data={
+        ...         'name': 'Иван Петров',
+        ...         'expected_objects': 11,
+        ...         'expected_confidence': 0.8
+        ...     }
+        ... )
     """
     task_start = time.time()
     filename = os.path.basename(temp_file_path)
@@ -126,22 +168,3 @@ def send_single_image(temp_file_path, token, user_data):
             'filename': filename,
             'error': str(e),
         }
-
-
-# Старая задача - оставляем для обратной совместимости, но не используем
-@shared_task
-def process_image_batch(file_paths, token, user_data):
-    """
-    СТАРАЯ задача для обработки пакета изображений.
-    Оставляем для обратной совместимости.
-    """
-    print(
-        f"[{time.time()}] [Celery]   process_image_batch ВЫЗВАН (устаревший метод)",
-        flush=True,
-    )
-
-    # Для обратной совместимости - запускаем отдельные задачи
-    for i, file_path in enumerate(file_paths):
-        send_single_image.delay(file_path, token, user_data)
-
-    return {"status": "started", "files_count": len(file_paths)}
