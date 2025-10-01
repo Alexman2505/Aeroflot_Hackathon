@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.conf import settings
 from .tasks import process_image_batch
 import time
+from .tasks import send_single_image
 
 
 def index(request):
@@ -120,10 +121,13 @@ def handle_auth_step(request, context):
 
 def handle_image_upload(request, context):
     """
-    Асинхронная обработка изображений.
+    Асинхронная обработка изображений - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ.
     """
     start_total = time.time()
-    print(f"[{time.time()}] НАЧАЛО handle_image_upload", flush=True)
+    print(
+        f"[{time.time()}]  НАЧАЛО handle_image_upload (ОПТИМИЗИРОВАННАЯ) ",
+        flush=True,
+    )
 
     token = request.POST.get('api_token', '').strip()
     name = request.session.get('sender_name', '')
@@ -196,9 +200,18 @@ def handle_image_upload(request, context):
             flush=True,
         )
 
-        # ЗАПУСК CELERY ЗАДАЧИ
-        print(f"[{time.time()}]  ЗАПУСКАЕМ CELERY ЗАДАЧУ...", flush=True)
+        # ОПТИМИЗИРОВАННЫЙ ЗАПУСК CELERY ЗАДАЧ
+        print(
+            f"[{time.time()}]  ОПТИМИЗИРОВАННЫЙ ЗАПУСК CELERY ЗАДАЧ...",
+            flush=True,
+        )
+        print(
+            f"[{time.time()}] Отправляем {len(temp_file_paths)} задач send_single_image напрямую",
+            flush=True,
+        )
+
         start_celery = time.time()
+        task_ids = []
 
         # ДИАГНОСТИКА CELERY
         print(
@@ -230,59 +243,61 @@ def handle_image_upload(request, context):
                 flush=True,
             )
 
-        # Импортируем задачу
+        # ОТПРАВКА ЗАДАЧ НАПРЯМУЮ - КАЖДОГО ФАЙЛА ОТДЕЛЬНО
+        tasks_start = time.time()
         print(
-            f"[{time.time()}] 5. Импортируем задачу process_image_batch",
+            f"[{time.time()}] 5. Начинаем отправку {len(temp_file_paths)} отдельных задач...",
             flush=True,
         )
-        from api.tasks import process_image_batch
 
-        # ОТПРАВКА ЗАДАЧИ
-        task_send_start = time.time()
-        print(f"[{time.time()}] 6. Время ПЕРЕД вызовом .delay()", flush=True)
-
-        try:
-            task = process_image_batch.delay(temp_file_paths, token, user_data)
-            task_send_time = time.time() - task_send_start
+        for i, file_path in enumerate(temp_file_paths):
+            task_single_start = time.time()
             print(
-                f"[{time.time()}] 7.  .delay() ВЫПОЛНЕН за {task_send_time:.3f}сек",
+                f"[{time.time()}]   Отправляем задачу для файла {i+1}: {os.path.basename(file_path)}",
                 flush=True,
             )
-            print(f"[{time.time()}] 8. ID задачи: {task.id}", flush=True)
-        except Exception as e:
-            task_send_time = time.time() - task_send_start
-            print(
-                f"[{time.time()}] 7.  ОШИБКА .delay(): {e}, время: {task_send_time:.3f}сек",
-                flush=True,
-            )
-            task = None
+
+            try:
+                # Отправляем каждую задачу отдельно
+                task = send_single_image.delay(file_path, token, user_data)
+                task_ids.append(task.id)
+                task_single_time = time.time() - task_single_start
+                print(
+                    f"[{time.time()}]    Задача {i+1} отправлена за {task_single_time:.3f}сек, ID: {task.id}",
+                    flush=True,
+                )
+            except Exception as e:
+                task_single_time = time.time() - task_single_start
+                print(
+                    f"[{time.time()}]    Ошибка отправки задачи {i+1}: {e}, время: {task_single_time:.3f}сек",
+                    flush=True,
+                )
+
+        tasks_total_time = time.time() - tasks_start
+        print(
+            f"[{time.time()}] 6.  ВСЕ {len(task_ids)} задач отправлены за {tasks_total_time:.3f}сек",
+            flush=True,
+        )
 
         celery_total_time = time.time() - start_celery
         print(
-            f"[{time.time()}] 9. ВСЯ Celery операция заняла: {celery_total_time:.3f}сек",
+            f"[{time.time()}] 7. ВСЯ Celery операция заняла: {celery_total_time:.3f}сек",
             flush=True,
         )
+        print(f"[{time.time()}] 8. ID всех задач: {task_ids}", flush=True)
 
         # Мгновенный ответ пользователю
-        if task:
-            context.update(
-                {
-                    'step': 'processing',
-                    'task_id': task.id,
-                    'images_count': len(image_files),
-                    'submitted': True,
-                    'sender_name': name,
-                    'expected_objects': expected_objects,
-                    'expected_confidence': expected_confidence,
-                }
-            )
-        else:
-            context.update(
-                {
-                    'step': 'upload',
-                    'error': 'Ошибка при запуске фоновой задачи',
-                }
-            )
+        context.update(
+            {
+                'step': 'processing',
+                'task_ids': task_ids,  # Теперь передаем список ID
+                'images_count': len(image_files),
+                'submitted': True,
+                'sender_name': name,
+                'expected_objects': expected_objects,
+                'expected_confidence': expected_confidence,
+            }
+        )
 
     else:
         print(

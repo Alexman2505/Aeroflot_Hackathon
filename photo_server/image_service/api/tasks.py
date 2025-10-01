@@ -14,7 +14,7 @@ def send_single_image(temp_file_path, token, user_data):
     task_start = time.time()
     filename = os.path.basename(temp_file_path)
     print(
-        f"[{time.time()}] [Celery] send_single_image ЗАПУЩЕН: {filename}",
+        f"[{time.time()}] [Celery]  send_single_image ЗАПУЩЕН: {filename}",
         flush=True,
     )
     print(
@@ -128,32 +128,20 @@ def send_single_image(temp_file_path, token, user_data):
         }
 
 
+# Старая задача - оставляем для обратной совместимости, но не используем
 @shared_task
 def process_image_batch(file_paths, token, user_data):
     """
-    Задача для обработки пакета изображений.
+    СТАРАЯ задача для обработки пакета изображений.
+    Оставляем для обратной совместимости.
     """
-    task_start = time.time()
-    print(f"[{time.time()}] [Celery]  process_image_batch ЗАПУЩЕН", flush=True)
-    print(f"[{time.time()}] [Celery]   файлов: {len(file_paths)}", flush=True)
     print(
-        f"[{time.time()}] [Celery]   token: {'ЕСТЬ' if token else 'НЕТ'}",
+        f"[{time.time()}] [Celery]   process_image_batch ВЫЗВАН (устаревший метод)",
         flush=True,
     )
-    print(f"[{time.time()}] [Celery]   user_data: {user_data}", flush=True)
 
-    # Запускаем отдельные задачи для каждого файла
+    # Для обратной совместимости - запускаем отдельные задачи
     for i, file_path in enumerate(file_paths):
-        print(
-            f"[{time.time()}] [Celery] Запускаем send_single_image для файла {i+1}: {os.path.basename(file_path)}",
-            flush=True,
-        )
         send_single_image.delay(file_path, token, user_data)
-
-    total_time = time.time() - task_start
-    print(
-        f"[{time.time()}] [Celery]  process_image_batch ЗАВЕРШЕН: все {len(file_paths)} задач отправлены в очередь, время: {total_time:.3f}сек",
-        flush=True,
-    )
 
     return {"status": "started", "files_count": len(file_paths)}
