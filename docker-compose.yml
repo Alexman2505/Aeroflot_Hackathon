@@ -70,8 +70,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.5'
-          memory: 6G
+          cpus: '3'
+          memory: 8G
     depends_on:
       db:
         condition: service_healthy
@@ -102,8 +102,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 4G
+          cpus: '2.0'
+          memory: 6G
     depends_on:
       - redis
       - backend
@@ -111,7 +111,7 @@ services:
       sh -c "echo 'Ожидание Redis и Backend...' &&
              sleep 20 &&
              echo 'Запуск Backend Celery Worker...' &&
-             celery -A AeroToolKit worker --loglevel=info --concurrency=1 -Q backend_tasks"
+             celery -A AeroToolKit worker --loglevel=info --concurrency=1 -Q backend_tasks --max-tasks-per-child 10"
 
   # Celery Worker для photo_server
   celery_worker:
@@ -134,7 +134,7 @@ services:
       sh -c "echo 'Ожидание Redis и Photo Server...' &&
              sleep 20 &&
              echo 'Запуск Photo Server Celery Worker...' &&
-             celery -A image_service worker --loglevel=info --concurrency=16 -Q photo_tasks"
+             celery -A image_service worker --loglevel=info --concurrency=8 -Q photo_tasks"
 
   # Photo Server
   photo_server:
