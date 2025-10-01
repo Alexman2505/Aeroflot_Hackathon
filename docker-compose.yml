@@ -1,54 +1,140 @@
-backend:
-  build: ./backend/
-  env_file: ./backend/.env
-  ports:
-    - "8000:8000"
-  volumes:
-    - ./backend:/app
-  networks:
-    - app-network
-  depends_on:
-    db:
-      condition: service_healthy
-    redis:
-      condition: service_started
-  command: >
-    sh -c "echo 'Ожидание базы данных...' &&
-           sleep 15 &&
-           echo 'Принудительное создание миграций...' &&
-           python manage.py makemigrations users --noinput &&
-           python manage.py makemigrations instruments --noinput &&
-           python manage.py makemigrations --noinput &&
-           echo 'Применение миграций...' &&
-           python manage.py migrate &&
-           echo 'Сбор статики...' &&
-           python manage.py collectstatic --noinput &&
-           echo 'Запуск сервера...' &&
-           gunicorn --workers 3 --threads 4 --bind 0.0.0.0:8000 --timeout 120 --max-requests 1000 --max-requests-jitter 100 AeroToolKit.wsgi:application"
+# http://localhost:8000 - основной бэкенд (Gunicorn + Celery)
+# http://localhost:8000/admin - админка Django
+# http://localhost:8000/api/ - API основного бэкенда
+# http://localhost:8001 - photo server (runserver)
+# http://localhost:8001/api/ - API photo server
+# Redis: localhost:6379
 
-photo_server:
-  build: ./photo_server/
-  env_file: ./photo_server/.env
-  ports:
-    - "8001:8000"
-  volumes:
-    - ./photo_server:/app
-    - ./photo_server/media:/app/media
-  networks:
-    - app-network
-  depends_on:
-    - backend
-    - redis
-  command: >
-    sh -c "echo 'Ожидание основного бэкенда и Redis...' &&
-           sleep 25 &&
-           echo 'Создание миграций...' &&
-           python manage.py makemigrations --noinput &&
-           echo 'Применение миграций...' &&
-           python manage.py migrate &&
-           echo 'Создание папки для временных файлов...' &&
-           mkdir -p /app/media/temp_uploads &&
-           echo 'Сбор статики...' &&
-           python manage.py collectstatic --noinput &&
-           echo 'Запуск фото сервера...' &&
-           gunicorn --workers 4 --threads 2 --bind 0.0.0.0:8000 --timeout 90 --max-requests 500 image_service.wsgi:application"
+version: '3.8'
+
+volumes:
+  pg_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge
+
+services:
+  # Redis для Celery
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    command: redis-server --appendonly yes
+
+  # База данных postgres
+  db:
+    image: postgres:13.10
+    env_file: ./backend/.env
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_USER=django_user_postgres
+      - POSTGRES_PASSWORD=mypasswordissecret
+      - POSTGRES_DB=django_db_postgres_aerotoolkit
+      - POSTGRES_MAX_CONNECTIONS=100
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U django_user_postgres -d django_db_postgres_aerotoolkit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend/AeroToolKit
+  backend:
+    build: ./backend/
+    env_file: ./backend/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "echo 'Ожидание базы данных...' &&
+             sleep 15 &&
+             echo 'Принудительное создание миграций...' &&
+             python manage.py makemigrations users --noinput &&
+             python manage.py makemigrations instruments --noinput &&
+             python manage.py makemigrations --noinput &&
+             echo 'Применение миграций...' &&
+             python manage.py migrate &&
+             echo 'Сбор статики...' &&
+             python manage.py collectstatic --noinput &&
+             echo 'Запуск сервера...' &&
+             gunicorn --workers 3 --threads 4 --bind 0.0.0.0:8000 --max-requests 1000 --max-requests-jitter 100 AeroToolKit.wsgi:application"
+
+  # Celery Worker для бэкенда
+  backend_celery:
+    build: ./backend/
+    env_file: ./backend/.env
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
+    depends_on:
+      - redis
+      - backend
+    command: >
+      sh -c "echo 'Ожидание Redis и Backend...' &&
+             sleep 20 &&
+             echo 'Запуск Backend Celery Worker...' &&
+             celery -A AeroToolKit worker --loglevel=info --concurrency=4 -Q backend_tasks --max-tasks-per-child 100 --without-gossip --without-mingle --prefetch-multiplier 1"
+
+  # Celery Worker для photo_server
+  celery_worker:
+    build: ./photo_server/
+    env_file: ./photo_server/.env
+    volumes:
+      - ./photo_server:/app
+      - ./photo_server/media:/app/media
+    networks:
+      - app-network
+    depends_on:
+      - redis
+      - photo_server
+    command: >
+      sh -c "echo 'Ожидание Redis и Photo Server...' &&
+             sleep 20 &&
+             echo 'Запуск Photo Server Celery Worker...' &&
+             celery -A image_service worker --loglevel=info --concurrency=6 -Q photo_tasks --without-gossip --without-mingle --prefetch-multiplier 1"
+
+  # Photo Server
+  photo_server:
+    build: ./photo_server/
+    env_file: ./photo_server/.env
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./photo_server:/app
+      - ./photo_server/media:/app/media
+    networks:
+      - app-network
+    depends_on:
+      - backend
+      - redis
+    command: >
+      sh -c "echo 'Ожидание основного бэкенда и Redis...' &&
+             sleep 25 &&
+             echo 'Создание миграций...' &&
+             python manage.py makemigrations --noinput &&
+             echo 'Применение миграций...' &&
+             python manage.py migrate &&
+             echo 'Создание папки для временных файлов...' &&
+             mkdir -p /app/media/temp_uploads &&
+             echo 'Сбор статики...' &&
+             python manage.py collectstatic --noinput &&
+             echo 'Запуск фото сервера...' &&
+             gunicorn --workers 4 --threads 2 --bind 0.0.0.0:8000 --max-requests 500 image_service.wsgi:application"
