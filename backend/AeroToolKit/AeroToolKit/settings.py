@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'core.apps.CoreConfig',
     'team.apps.TeamConfig',
+    'api.apps.ApiConfig',
     'rest_framework',
     'rest_framework.authtoken',
     'sorl.thumbnail',
@@ -214,19 +215,7 @@ SWAGGER_SETTINGS = {
 REDOC_SETTINGS = {
     'LAZY_RENDERING': False,
 }
-# YOLO_CLASSES = [
-#     '1_отвертка_минус',  # Отвертка «-»
-#     '2_отвертка_плюс',  # Отвертка «+»
-#     '3_отвертка_смещенный_крест',  # Отвертка на смещенный крест
-#     '4_коловорот',  # Коловорот
-#     '5_пассатижи_контровочные',  # Пассатижи контровочные
-#     '6_пассатижи',  # Пассатижи
-#     '7_шэрница',  # Шэрница клещи переставные
-#     '8_разводной_ключ',  # Разводной ключ
-#     '9_открывашка_для_банок',  # Открывашка для банок с маслом
-#     '10_ключ_рожковый_накидной',  # Ключ рожковый накидной ¾
-#     '11_бокорезы',  # Бокорезы
-# ]
+
 YOLO_CLASSES = [
     '1_otvertka_minus',
     '2_otvertka_plus',
@@ -244,9 +233,6 @@ YOLO_CLASSES = [
 EXPECTED_OBJECTS = 11
 # Заглушка, заменяется переменной при отправке с фото сервера. Уверенность, что инструмент распознан правильно
 EXPECTED_CONFIDENCE = 0.90
-# Чтобы джанга не лагала при загрузке больших файлов.
-DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 50MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 50MB
 MIGRATION_MODULES = {
     'users': 'users.migrations',  # Миграции users в users/migrations/
     'instruments': 'instruments.migrations',  # Миграции instruments в instruments/migrations/
