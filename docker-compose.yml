@@ -36,6 +36,7 @@ services:
       - POSTGRES_USER=django_user_postgres
       - POSTGRES_PASSWORD=mypasswordissecret
       - POSTGRES_DB=django_db_postgres_aerotoolkit
+      - POSTGRES_MAX_CONNECTIONS=100
     volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
@@ -73,7 +74,7 @@ services:
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск сервера...' &&
-             gunicorn --workers 8 --worker-class sync --timeout 120 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
+             gunicorn --workers 8 --worker-class gevent --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
 
   # Celery Worker для бэкенда
   backend_celery:
@@ -90,7 +91,7 @@ services:
       sh -c "echo 'Ожидание Redis и Backend...' &&
              sleep 20 &&
              echo 'Запуск Backend Celery Worker...' &&
-             celery -A AeroToolKit worker --loglevel=info --concurrency=4 -Q backend_tasks"
+             celery -A AeroToolKit worker --loglevel=info --concurrency=2 -Q backend_tasks"
 
   # Celery Worker для photo_server
   celery_worker:
@@ -136,4 +137,4 @@ services:
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск фото сервера...' &&
-             gunicorn --workers 2 --timeout 120 --bind 0.0.0.0:8000 image_service.wsgi:application"
+             gunicorn --workers 8 --timeout 120 --bind 0.0.0.0:8000 image_service.wsgi:application"
