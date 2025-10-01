@@ -26,6 +26,11 @@ services:
     networks:
       - app-network
     command: redis-server --appendonly yes
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
 
   # База данных postgres
   db:
@@ -46,6 +51,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 4G
 
   # Backend/AeroToolKit
   backend:
@@ -57,6 +67,11 @@ services:
       - ./backend:/app
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 6G
     depends_on:
       db:
         condition: service_healthy
@@ -74,7 +89,7 @@ services:
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск сервера...' &&
-             gunicorn --workers 4 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
+             gunicorn --workers 6 --threads 2 --bind 0.0.0.0:8000 AeroToolKit.wsgi:application"
 
   # Celery Worker для бэкенда
   backend_celery:
@@ -84,6 +99,11 @@ services:
       - ./backend:/app
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 4G
     depends_on:
       - redis
       - backend
@@ -102,6 +122,11 @@ services:
       - ./photo_server/media:/app/media
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 8G
     depends_on:
       - redis
       - photo_server
@@ -109,7 +134,7 @@ services:
       sh -c "echo 'Ожидание Redis и Photo Server...' &&
              sleep 20 &&
              echo 'Запуск Photo Server Celery Worker...' &&
-             celery -A image_service worker --loglevel=info --concurrency=12 -Q photo_tasks"
+             celery -A image_service worker --loglevel=info --concurrency=16 -Q photo_tasks"
 
   # Photo Server
   photo_server:
@@ -122,6 +147,11 @@ services:
       - ./photo_server/media:/app/media
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 2G
     depends_on:
       - backend
       - redis
@@ -137,4 +167,4 @@ services:
              echo 'Сбор статики...' &&
              python manage.py collectstatic --noinput &&
              echo 'Запуск фото сервера...' &&
-             gunicorn --workers 12 --threads 2 --bind 0.0.0.0:8000 image_service.wsgi:application"
+             gunicorn --workers 16 --threads 2 --bind 0.0.0.0:8000 image_service.wsgi:application"
