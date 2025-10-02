@@ -3,7 +3,7 @@
 {% block content %}
   {% load cache %}
   {% cache 5 index_page page_obj.number %}
-  <h1>Последние обновления на сервере</h1>
+  <h1><a href="http://aerotoolkit.sytes.net:8001/">Фотосервис</a> для отправки фотографий</h1>
   </br>
   {% for instrument in page_obj %}
     {% include 'includes/general.html' %}
