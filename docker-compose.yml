@@ -18,7 +18,7 @@ networks:
 services:
   # Redis для Celery
   redis:
-    image: redis:7-alpine
+    image: redis:7
     ports:
       - "6379:6379"
     volumes:
@@ -27,7 +27,20 @@ services:
       - app-network
     command: redis-server --appendonly yes
 
+  flower:
+    image: mher/flower:0.9.7
+    command: celery flower --broker=redis://redis:6379/0 --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_started
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    networks:
+      - app-network
   # База данных postgres
+
   db:
     image: postgres:13.10
     env_file: ./backend/.env
@@ -87,6 +100,7 @@ services:
     depends_on:
       - redis
       - backend
+    restart: unless-stopped
     command: >
       sh -c "echo 'Ожидание Redis и Backend...' &&
              sleep 20 &&
@@ -105,11 +119,12 @@ services:
     depends_on:
       - redis
       - photo_server
+    restart: unless-stopped
     command: >
       sh -c "echo 'Ожидание Redis и Photo Server...' &&
              sleep 20 &&
              echo 'Запуск Photo Server Celery Worker...' &&
-             celery -A image_service worker --loglevel=info --concurrency=30 -Q photo_tasks --without-gossip --without-mingle --prefetch-multiplier 1"
+             celery -A image_service worker --loglevel=info --concurrency=4 -Q photo_tasks --without-gossip --without-mingle --prefetch-multiplier 1"
 
   # Photo Server
   photo_server:
